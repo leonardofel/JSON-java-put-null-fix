@@ -568,14 +568,6 @@ public class JSONArray implements Iterable<Object> {
     }
 
     /**
-     * Removes all of the elements from this JSONArray.
-     * The JSONArray will be empty after this call returns.
-     */
-    public void clear() {
-        this.myArrayList.clear();
-    }
-
-    /**
      * Get the optional object value associated with an index.
      *
      * @param index
@@ -1382,8 +1374,6 @@ public class JSONArray implements Iterable<Object> {
                 if (!((JSONArray)valueThis).similar(valueOther)) {
                     return false;
                 }
-            } else if (valueThis instanceof Number && valueOther instanceof Number) {
-                return JSONObject.isNumberSimilar((Number)valueThis, (Number)valueOther);
             } else if (!valueThis.equals(valueOther)) {
                 return false;
             }
@@ -1711,4 +1701,15 @@ public class JSONArray implements Iterable<Object> {
                 , cause);
     }
 
+    public Integer optInteger(int index) {
+        return this.optInteger(index, null);
+    }
+
+    public Integer optInteger(int index, Integer defaultValue) {
+        final Number val = this.optNumber(index, null);
+        if (val == null) {
+            return defaultValue;
+        }
+        return val.intValue();
+    }
 }
