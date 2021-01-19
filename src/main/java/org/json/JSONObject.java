@@ -1709,7 +1709,7 @@ public class JSONObject {
      * @throws NullPointerException
      *            If the key is <code>null</code>.
      */
-    public JSONObject put(String key, Collection<?> value) throws JSONException {
+    public JSONObject putCollection(String key, Collection<?> value) throws JSONException {
         return this.put(key, new JSONArray(value));
     }
 
@@ -1795,7 +1795,7 @@ public class JSONObject {
      * @throws NullPointerException
      *            If the key is <code>null</code>.
      */
-    public JSONObject put(String key, Map<?, ?> value) throws JSONException {
+    public JSONObject putMap(String key, Map<?, ?> value) throws JSONException {
         return this.put(key, new JSONObject(value));
     }
 
@@ -1821,14 +1821,22 @@ public class JSONObject {
         if (key == null) {
             throw new NullPointerException("Null key.");
         }
-        if (value != null) {
-            testValidity(value);
-            this.map.put(key, value);
-        } else {
+
+        if (value == null) {
             // just...            
             // works
             // btw idc
             this.map.put(key, JSONObject.NULL);
+        } else {
+            testValidity(value);
+
+            if (value instanceof Collection) {
+                this.putCollection(key, (Collection<?>) value);
+            } else if (value instanceof Map) {
+                this.putMap(key, (Map<?, ?>) value);
+            } else {
+                this.map.put(key, value);
+            }
         }
         return this;
     }

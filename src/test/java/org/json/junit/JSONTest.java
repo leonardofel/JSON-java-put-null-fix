@@ -12,6 +12,56 @@ import org.junit.Test;
 
 public class JSONTest {
     @Test
+    public void testConstructor() {
+        final JSONObject expected = new JSONObject("{\"myKey\":10}");
+
+        @SuppressWarnings("rawtypes")
+        Map myRawC = Collections.singletonMap("myKey", Integer.valueOf(10));
+        JSONObject jaRaw = new JSONObject(myRawC);
+
+        Map<String, Object> myCStrObj = Collections.singletonMap("myKey", (Object) Integer.valueOf(10));
+        JSONObject jaStrObj = new JSONObject(myCStrObj);
+
+        Map<String, Integer> myCStrInt = Collections.singletonMap("myKey", Integer.valueOf(10));
+        JSONObject jaStrInt = new JSONObject(myCStrInt);
+
+        Map<?, ?> myCObjObj = Collections.singletonMap((Object) "myKey", (Object) Integer.valueOf(10));
+        JSONObject jaObjObj = new JSONObject(myCObjObj);
+
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaRaw));
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaStrObj));
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaStrInt));
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaObjObj));
+    }
+
+    @Test
+    public void testPutMap() {
+        final JSONObject expected = new JSONObject("{\"myMap\":{\"myKey\":10}}");
+
+        @SuppressWarnings("rawtypes")
+        Map myRawC = Collections.singletonMap("myKey", Integer.valueOf(10));
+        JSONObject jaRaw = new JSONObject();
+        jaRaw.put("myMap", myRawC);
+
+        Map<String, Object> myCStrObj = Collections.singletonMap("myKey", (Object) Integer.valueOf(10));
+        JSONObject jaStrObj = new JSONObject();
+        jaStrObj.put("myMap", myCStrObj);
+
+        Map<String, Integer> myCStrInt = Collections.singletonMap("myKey", Integer.valueOf(10));
+        JSONObject jaStrInt = new JSONObject();
+        jaStrInt.put("myMap", myCStrInt);
+
+        Map<?, ?> myCObjObj = Collections.singletonMap((Object) "myKey", (Object) Integer.valueOf(10));
+        JSONObject jaObjObj = new JSONObject();
+        jaObjObj.put("myMap", myCObjObj);
+
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaRaw));
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaStrObj));
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaStrInt));
+        assertTrue("The RAW Collection should give me the same as the Typed Collection", expected.similar(jaObjObj));
+    }
+
+    @Test
     public void testMapWithNullValue() {
         Map<String, Object> map = new HashMap<String, Object>();
         map.put("trueKey", Boolean.valueOf(true));
@@ -50,7 +100,7 @@ public class JSONTest {
         assertTrue("jsonObject should be empty", jsonObjectRemove.isEmpty());
 
         JSONObject jsonObjectPutNull = new JSONObject(str);
-        jsonObjectPutNull.put("myKey", (Object) null);
+        jsonObjectPutNull.put("myKey", null);
         assertTrue("jsonObject should NOT be empty", !jsonObjectPutNull.isEmpty());
     }
 
