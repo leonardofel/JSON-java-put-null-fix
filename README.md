@@ -28,7 +28,7 @@ In project's pom.xml add in ```<dependencies>```:
     <dependency>
         <groupId>com.github.leonardofel</groupId>
         <artifactId>json-java-put-null-fix</artifactId>
-        <version>3.0.29</version>
+        <version>3.0.30</version>
     </dependency>
 </dependencies>
 ```
@@ -41,7 +41,7 @@ and add in ```<repositories>```:
     </repository>
 </repositories>
 ```
-    
+
 
 **Building from the command line**
 
