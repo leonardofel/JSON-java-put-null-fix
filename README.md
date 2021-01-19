@@ -19,9 +19,27 @@ Project goals include:
 
 The files in this package implement JSON encoders and decoders. The package can also convert between JSON and XML, HTTP headers, Cookies, and CDL.
 
-# Build Instructions
+# Build Instructions (pre-alpha)
 
 The org.json package can be built from the command line ONLY Maven. The unit tests can be executed from Maven only.
+in project's pom.xml add:
+<dependencies>
+    <dependency>
+        <groupId>com.github.leonardofel</groupId>
+        <artifactId>json-java-put-null-fix</artifactId>
+        <version>3.0.29</version>
+    </dependency>
+    ....
+</dependencies>
+....
+<repositories>
+    ....
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+    
 
 **Building from the command line**
 
