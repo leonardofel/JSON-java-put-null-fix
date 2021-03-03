@@ -1140,8 +1140,11 @@ public class JSONObject {
      * @return An object which is the value.
      */
     public BigDecimal optBigDecimal(String key, BigDecimal defaultValue) {
-        Object val = this.opt(key);
-        return objectToBigDecimal(val, defaultValue);
+        try {
+            return this.getBigDecimal(key);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -1191,8 +1194,11 @@ public class JSONObject {
      * @return An object which is the value.
      */
     public BigInteger optBigInteger(String key, BigInteger defaultValue) {
-        Object val = this.opt(key);
-        return objectToBigInteger(val, defaultValue);
+        try {
+            return this.getBigInteger(key);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -1264,15 +1270,11 @@ public class JSONObject {
      * @return An object which is the value.
      */
     public double optDouble(String key, double defaultValue) {
-        Number val = this.optNumber(key);
-        if (val == null) {
+        try {
+            return this.getDouble(key);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        final double doubleValue = val.doubleValue();
-        // if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
-        // return defaultValue;
-        // }
-        return doubleValue;
     }
 
     /**
@@ -1300,15 +1302,11 @@ public class JSONObject {
      * @return The value.
      */
     public float optFloat(String key, float defaultValue) {
-        Number val = this.optNumber(key);
-        if (val == null) {
+        try {
+            return this.getFloat(key);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        final float floatValue = val.floatValue();
-        // if (Float.isNaN(floatValue) || Float.isInfinite(floatValue)) {
-        // return defaultValue;
-        // }
-        return floatValue;
     }
 
     /**
@@ -1336,11 +1334,11 @@ public class JSONObject {
      * @return An object which is the value.
      */
     public int optInt(String key, int defaultValue) {
-        final Number val = this.optNumber(key, null);
-        if (val == null) {
+        try {
+            return this.getInt(key);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        return val.intValue();
     }
 
     /**
@@ -1394,12 +1392,11 @@ public class JSONObject {
      * @return An object which is the value.
      */
     public long optLong(String key, long defaultValue) {
-        final Number val = this.optNumber(key, null);
-        if (val == null) {
+        try {
+            return this.getLong(key);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        
-        return val.longValue();
     }
     
     /**
@@ -1429,17 +1426,9 @@ public class JSONObject {
      * @return An object which is the value.
      */
     public Number optNumber(String key, Number defaultValue) {
-        Object val = this.opt(key);
-        if (NULL.equals(val)) {
-            return defaultValue;
-        }
-        if (val instanceof Number){
-            return (Number) val;
-        }
-        
         try {
-            return stringToNumber(val.toString());
-        } catch (Exception e) {
+            return this.getNumber(key);
+        } catch (Exception ex) {
             return defaultValue;
         }
     }
@@ -1470,6 +1459,30 @@ public class JSONObject {
     public String optString(String key, String defaultValue) {
         Object object = this.opt(key);
         return NULL.equals(object) ? defaultValue : object.toString();
+    }
+
+    public Integer getInteger(String key) {
+        final Object object = this.get(key);
+        if (object instanceof Number) {
+            return ((Number) object).intValue();
+        }
+        try {
+            return Integer.parseInt(object.toString());
+        } catch (Exception e) {
+            throw wrongValueFormatException(key, "integer", e);
+        }
+    }
+
+    public Integer optInteger(String key) {
+        return this.optInteger(key, null);
+    }
+
+    public Integer optInteger(String key, Integer defaultValue) {
+        try {
+            return this.getInteger(key);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     /**

@@ -167,4 +167,44 @@ public class JSONTest {
         jsonObject.put(null, new Object());
         fail("Expected an exception");
     }
+
+    @Test
+    public void testPutFloat() {
+        // put null should remove the item.
+        JSONObject json_0 = new JSONObject()
+            .put("myKey_0", "0")
+            .put("myKey_1", "1")
+            .put("myKey_2", "-1");
+        assertTrue("JSONObject getFloat differs from optFloat", json_0.optFloat("myKey_0") == json_0.getFloat("myKey_0"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_0.optFloat("myKey_1") == json_0.getFloat("myKey_1"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_0.optFloat("myKey_2") == json_0.getFloat("myKey_2"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_0.optFloat("myKey_3", -123) == -123.00F);
+
+        JSONObject json_1 = new JSONObject()
+            .put("myKey_0", "0.00")
+            .put("myKey_1", "1.00")
+            .put("myKey_2", "-1.00");
+        assertTrue("JSONObject getFloat differs from optFloat", json_1.optFloat("myKey_0") == json_1.getFloat("myKey_0"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_1.optFloat("myKey_1") == json_1.getFloat("myKey_1"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_1.optFloat("myKey_2") == json_1.getFloat("myKey_2"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_1.optFloat("myKey_3", -123) == -123.00F);
+
+        JSONObject json_2 = new JSONObject()
+            .put("myKey_0", "00")
+            .put("myKey_1", "01")
+            .put("myKey_2", "-01");
+        assertTrue("JSONObject getFloat differs from optFloat", json_2.optFloat("myKey_0") == json_2.getFloat("myKey_0"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_2.optFloat("myKey_1") == json_2.getFloat("myKey_1"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_2.optFloat("myKey_2") == json_2.getFloat("myKey_2"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_2.optFloat("myKey_3", -123) == -123.00F);
+
+        JSONObject json_3 = new JSONObject()
+            .put("myKey_0", "00.00")
+            .put("myKey_1", "01.00")
+            .put("myKey_2", "-01.00");
+        assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_0") == json_3.getFloat("myKey_0"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_1") == json_3.getFloat("myKey_1"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_2") == json_3.getFloat("myKey_2"));
+        assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_3", -123) == -123.00F);
+    }
 }

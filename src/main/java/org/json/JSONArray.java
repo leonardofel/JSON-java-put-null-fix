@@ -636,15 +636,11 @@ public class JSONArray implements Iterable<Object> {
      * @return The value.
      */
     public double optDouble(int index, double defaultValue) {
-        final Number val = this.optNumber(index, null);
-        if (val == null) {
+        try {
+            return this.getDouble(index);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        final double doubleValue = val.doubleValue();
-        // if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
-        // return defaultValue;
-        // }
-        return doubleValue;
     }
 
     /**
@@ -672,15 +668,11 @@ public class JSONArray implements Iterable<Object> {
      * @return The value.
      */
     public float optFloat(int index, float defaultValue) {
-        final Number val = this.optNumber(index, null);
-        if (val == null) {
+        try {
+            return this.getFloat(index);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        final float floatValue = val.floatValue();
-        // if (Float.isNaN(floatValue) || Float.isInfinite(floatValue)) {
-        // return floatValue;
-        // }
-        return floatValue;
     }
 
     /**
@@ -708,11 +700,11 @@ public class JSONArray implements Iterable<Object> {
      * @return The value.
      */
     public int optInt(int index, int defaultValue) {
-        final Number val = this.optNumber(index, null);
-        if (val == null) {
+        try {
+            return this.getInt(index);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        return val.intValue();
     }
 
     /**
@@ -776,8 +768,11 @@ public class JSONArray implements Iterable<Object> {
      * @return The value.
      */
     public BigInteger optBigInteger(int index, BigInteger defaultValue) {
-        Object val = this.opt(index);
-        return JSONObject.objectToBigInteger(val, defaultValue);
+        try {
+            return this.getBigInteger(index);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -795,8 +790,11 @@ public class JSONArray implements Iterable<Object> {
      * @return The value.
      */
     public BigDecimal optBigDecimal(int index, BigDecimal defaultValue) {
-        Object val = this.opt(index);
-        return JSONObject.objectToBigDecimal(val, defaultValue);
+        try {
+            return this.getBigDecimal(index);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -851,11 +849,11 @@ public class JSONArray implements Iterable<Object> {
      * @return The value.
      */
     public long optLong(int index, long defaultValue) {
-        final Number val = this.optNumber(index, null);
-        if (val == null) {
+        try {
+            return this.getLong(index);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        return val.longValue();
     }
 
     /**
@@ -885,22 +883,11 @@ public class JSONArray implements Iterable<Object> {
      * @return An object which is the value.
      */
     public Number optNumber(int index, Number defaultValue) {
-        Object val = this.opt(index);
-        if (JSONObject.NULL.equals(val)) {
+        try {
+            return this.getNumber(index);
+        } catch (Exception ex) {
             return defaultValue;
         }
-        if (val instanceof Number){
-            return (Number) val;
-        }
-        
-        if (val instanceof String) {
-            try {
-                return JSONObject.stringToNumber((String) val);
-            } catch (Exception e) {
-                return defaultValue;
-            }
-        }
-        return defaultValue;
     }
 
     /**
@@ -930,6 +917,30 @@ public class JSONArray implements Iterable<Object> {
         Object object = this.opt(index);
         return JSONObject.NULL.equals(object) ? defaultValue : object
                 .toString();
+    }
+
+    public Integer getInteger(int index) {
+        final Object object = this.get(index);
+        if (object instanceof Number) {
+            return ((Number) object).intValue();
+        }
+        try {
+            return Integer.parseInt(object.toString());
+        } catch (Exception e) {
+            throw wrongValueFormatException(index, "integer", e);
+        }
+    }
+
+    public Integer optInteger(int index) {
+        return this.optInteger(index, null);
+    }
+
+    public Integer optInteger(int index, Integer defaultValue) {
+        try {
+            return this.getInteger(index);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -1699,17 +1710,5 @@ public class JSONArray implements Iterable<Object> {
         return new JSONException(
                 "JSONArray[" + idx + "] is not a " + valueType + " (" + value + ")."
                 , cause);
-    }
-
-    public Integer optInteger(int index) {
-        return this.optInteger(index, null);
-    }
-
-    public Integer optInteger(int index, Integer defaultValue) {
-        final Number val = this.optNumber(index, null);
-        if (val == null) {
-            return defaultValue;
-        }
-        return val.intValue();
     }
 }
