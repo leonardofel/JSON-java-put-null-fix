@@ -594,7 +594,7 @@ public class JSONObject {
             // JSONException should really take a throwable argument.
             // If it did, I would re-implement this with the Enum.valueOf
             // method and place any thrown exception in the JSONException
-            throw wrongValueFormatException(key, "enum of type " + quote(clazz.getSimpleName()), null);
+            throw wrongValueFormatException(key, "enum of type " + JSONObject.quote(clazz.getSimpleName()), null);
         }
         return val;
     }
@@ -635,7 +635,7 @@ public class JSONObject {
      */
     public BigInteger getBigInteger(String key) throws JSONException {
         Object object = this.get(key);
-        BigInteger ret = objectToBigInteger(object, null);
+        BigInteger ret = JSONObject.objectToBigInteger(object, null);
         if (ret != null) {
             return ret;
         }
@@ -657,7 +657,7 @@ public class JSONObject {
      */
     public BigDecimal getBigDecimal(String key) throws JSONException {
         Object object = this.get(key);
-        BigDecimal ret = objectToBigDecimal(object, null);
+        BigDecimal ret = JSONObject.objectToBigDecimal(object, null);
         if (ret != null) {
             return ret;
         }
@@ -724,7 +724,7 @@ public class JSONObject {
             if (object instanceof Number) {
                 return (Number)object;
             }
-            return stringToNumber(object.toString());
+            return JSONObject.stringToNumber(object.toString());
         } catch (Exception e) {
             throw wrongValueFormatException(key, "number", e);
         }
@@ -860,7 +860,7 @@ public class JSONObject {
         if (object instanceof String) {
             return (String) object;
         }
-        throw wrongValueFormatException(key, "string", null);
+        throw wrongValueFormatException(key, "String", null);
     }
 
     /**

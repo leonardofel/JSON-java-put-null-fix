@@ -288,7 +288,7 @@ public class JSONArray implements Iterable<Object> {
                         .equalsIgnoreCase("true"))) {
             return true;
         }
-        throw wrongValueFormatException(index, "boolean", null);
+        throw wrongValueFormatException(index, "Boolean", null);
     }
 
     /**
@@ -326,7 +326,7 @@ public class JSONArray implements Iterable<Object> {
     public float getFloat(int index) throws JSONException {
         final Object object = this.get(index);
         if(object instanceof Number) {
-            return ((Float)object).floatValue();
+            return ((Number)object).floatValue();
         }
         try {
             return Float.parseFloat(object.toString());
@@ -377,8 +377,7 @@ public class JSONArray implements Iterable<Object> {
             // JSONException should really take a throwable argument.
             // If it did, I would re-implement this with the Enum.valueOf
             // method and place any thrown exception in the JSONException
-            throw wrongValueFormatException(index, "enum of type "
-                    + JSONObject.quote(clazz.getSimpleName()), null);
+            throw wrongValueFormatException(index, "enum of type " + JSONObject.quote(clazz.getSimpleName()), null);
         }
         return val;
     }
@@ -396,13 +395,13 @@ public class JSONArray implements Iterable<Object> {
      *             If the key is not found or if the value cannot be converted
      *             to a BigDecimal.
      */
-    public BigDecimal getBigDecimal (int index) throws JSONException {
+    public BigDecimal getBigDecimal(int index) throws JSONException {
         Object object = this.get(index);
-        BigDecimal val = JSONObject.objectToBigDecimal(object, null);
-        if(val == null) {
-            throw wrongValueFormatException(index, "BigDecimal", object, null);
+        BigDecimal ret = JSONObject.objectToBigDecimal(object, null);
+        if (ret != null) {
+            return ret;
         }
-        return val;
+        throw wrongValueFormatException(index, "BigDecimal", object, null);
     }
 
     /**
@@ -415,13 +414,13 @@ public class JSONArray implements Iterable<Object> {
      *             If the key is not found or if the value cannot be converted
      *             to a BigInteger.
      */
-    public BigInteger getBigInteger (int index) throws JSONException {
+    public BigInteger getBigInteger(int index) throws JSONException {
         Object object = this.get(index);
-        BigInteger val = JSONObject.objectToBigInteger(object, null);
-        if(val == null) {
-            throw wrongValueFormatException(index, "BigInteger", object, null);
+        BigInteger ret = JSONObject.objectToBigInteger(object, null);
+        if (ret != null) {
+            return ret;
         }
-        return val;
+        throw wrongValueFormatException(index, "BigInteger", object, null);
     }
 
     /**
