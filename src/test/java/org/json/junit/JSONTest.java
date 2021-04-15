@@ -1,8 +1,11 @@
 package org.json.junit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -104,6 +107,32 @@ public class JSONTest {
         assertTrue("jsonObject should NOT be empty", !jsonObjectPutNull.isEmpty());
     }
 
+    @Test
+    public void testNullBoolean() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Boolean put_value_1 = false;
+        final Boolean put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Boolean get_value_1 = jsonObject.getBoolean("value_1");
+        final Boolean get_value_2 = jsonObject.optBoolean("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        //assertEquals(put_value_2, get_value_2);
+
+        jsonObject.put("value_1", get_value_1);
+        jsonObject.put("value_2", get_value_2);
+
+        final Boolean get_get_value_1 = jsonObject.getBoolean("value_1");
+        final Boolean get_get_value_2 = jsonObject.optBoolean("value_2");
+
+        assertEquals(get_get_value_1, get_value_1);
+        assertEquals(get_get_value_2, get_value_2);
+    }
+
     @Test(expected = NullPointerException.class)
     public void testPutNullBoolean() {
         // null put key
@@ -120,12 +149,67 @@ public class JSONTest {
         fail("Expected an exception");
     }
 
+    @Test
+    public void testNullDouble() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Double put_value_1 = 0.0d;
+        final Double put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Double get_value_1 = jsonObject.getDouble("value_1");
+        final Double get_value_2 = jsonObject.optDouble("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        assertEquals(put_value_2, get_value_2);
+
+        jsonObject.put("value_1", get_value_1);
+        jsonObject.put("value_2", get_value_2);
+
+        final Double get_get_value_1 = jsonObject.getDouble("value_1");
+        final Double get_get_value_2 = jsonObject.optDouble("value_2");
+
+        assertEquals(get_get_value_1, get_value_1);
+        assertEquals(get_get_value_2, get_value_2);
+    }
+
     @Test(expected = NullPointerException.class)
     public void testPutNullDouble() {
         // null put key
         JSONObject jsonObject = new JSONObject("{}");
         jsonObject.put(null, 0.0d);
         fail("Expected an exception");
+    }
+
+    @Test
+    public void testNullFloat() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Float put_value_1 = 0.0f;
+        final Float put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Float get_value_1 = jsonObject.getFloat("value_1");
+        final Float get_value_2 = jsonObject.optFloat("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        assertEquals(put_value_2, get_value_2);
+
+        jsonObject.put("value_1", get_value_1);
+        jsonObject.put("value_2", get_value_2);
+
+        final Float get_get_value_1 = jsonObject.getFloat("value_1");
+        final Float get_get_value_2 = jsonObject.optFloat("value_2");
+
+        assertEquals(get_get_value_1, get_value_1);
+        assertEquals(get_get_value_2, get_value_2);
+
+        assertEquals(put_value_1, get_value_1);
+        assertEquals(put_value_2, get_value_2);
     }
 
     @Test(expected = NullPointerException.class)
@@ -136,12 +220,64 @@ public class JSONTest {
         fail("Expected an exception");
     }
 
+    @Test
+    public void testNullInteger() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Integer put_value_1 = 0;
+        final Integer put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Integer get_value_1 = jsonObject.getInteger("value_1");
+        final Integer get_value_2 = jsonObject.optInteger("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        assertEquals(put_value_2, get_value_2);
+
+        jsonObject.put("value_1", get_value_1);
+        jsonObject.put("value_2", get_value_2);
+
+        final Integer get_get_value_1 = jsonObject.getInteger("value_1");
+        final Integer get_get_value_2 = jsonObject.optInteger("value_2");
+
+        assertEquals(get_get_value_1, get_value_1);
+        assertEquals(get_get_value_2, get_value_2);
+    }
+
     @Test(expected = NullPointerException.class)
     public void testPutNullInt() {
         // null put key
         JSONObject jsonObject = new JSONObject("{}");
         jsonObject.put(null, 0);
         fail("Expected an exception");
+    }
+
+    @Test
+    public void testNullLong() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Long put_value_1 = 0L;
+        final Long put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Long get_value_1 = jsonObject.getLong("value_1");
+        final Long get_value_2 = jsonObject.optLong("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        assertEquals(put_value_2, get_value_2);
+
+        jsonObject.put("value_1", get_value_1);
+        jsonObject.put("value_2", get_value_2);
+
+        final Long get_get_value_1 = jsonObject.getLong("value_1");
+        final Long get_get_value_2 = jsonObject.optLong("value_2");
+
+        assertEquals(get_get_value_1, get_value_1);
+        assertEquals(get_get_value_2, get_value_2);
     }
 
     @Test(expected = NullPointerException.class)
@@ -152,12 +288,64 @@ public class JSONTest {
         fail("Expected an exception");
     }
 
+    @Test
+    public void testNullMap() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Map<String, Object> put_value_1 = Collections.emptyMap();
+        final Map<String, Object> put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Map<String, Object> get_value_1 = jsonObject.getJSONObject("value_1").toMap();
+        //final Map<String, Object> get_value_2 = jsonObject.getJSONObject("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        //assertEquals(put_value_2, jsonObject.getJSONObject("value_2").toMap());
+
+        jsonObject.put("value_1", get_value_1);
+        //jsonObject.put("value_2", get_value_2);
+
+        final Map<String, Object> get_get_value_1 = jsonObject.getJSONObject("value_1").toMap();
+        //final Map<String, Object> get_get_value_2 = jsonObject.toMap();
+
+        assertEquals(get_get_value_1, get_value_1);
+        //assertEquals(get_get_value_2, get_value_2);
+    }
+
     @Test(expected = NullPointerException.class)
     public void testPutNullMap() {
         // null put key
         JSONObject jsonObject = new JSONObject("{}");
         jsonObject.put(null, Collections.emptyMap());
         fail("Expected an exception");
+    }
+
+    @Test
+    public void testNullObject() {
+        JSONObject jsonObject = new JSONObject("{}");
+
+        final Object put_value_1 = new Object();
+        final Object put_value_2 = null;
+
+        jsonObject.put("value_1", put_value_1);
+        jsonObject.put("value_2", put_value_2);
+
+        final Object get_value_1 = jsonObject.get("value_1");
+        final Object get_value_2 = jsonObject.opt("value_2");
+
+        assertEquals(put_value_1, get_value_1);
+        assertEquals(put_value_2, get_value_2);
+
+        jsonObject.put("value_1", get_value_1);
+        jsonObject.put("value_2", get_value_2);
+
+        final Object get_get_value_1 = jsonObject.get("value_1");
+        final Object get_get_value_2 = jsonObject.opt("value_2");
+
+        assertEquals(get_get_value_1, get_value_1);
+        assertEquals(get_get_value_2, get_value_2);
     }
 
     @Test(expected = NullPointerException.class)
@@ -206,5 +394,17 @@ public class JSONTest {
         assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_1") == json_3.getFloat("myKey_1"));
         assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_2") == json_3.getFloat("myKey_2"));
         assertTrue("JSONObject getFloat differs from optFloat", json_3.optFloat("myKey_3", -123) == -123.00F);
+    }
+
+    @Test
+    public void lastTest() {
+        //final Byte a_Byte; //json.getByte("a");
+        final Double a_Double; //json.getDouble("a"); //testNullDouble
+        final Float a_Float; //json.getFloat("a"); //testNullFloat
+        final Integer a_Integer; //json.getInteger("a"); //testNullInteger
+        final Long a_Long; //json.getLong("a"); //testNullLong
+        //final Short a_Short; //json.getShort("a");
+        final BigDecimal a_BigDecimal; //json.getBigDecimal("a");
+        final BigInteger a_BigInteger; //json.getBigInteger("a");
     }
 }
