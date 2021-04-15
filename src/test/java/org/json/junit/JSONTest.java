@@ -207,9 +207,6 @@ public class JSONTest {
 
         assertEquals(get_get_value_1, get_value_1);
         assertEquals(get_get_value_2, get_value_2);
-
-        assertEquals(put_value_1, get_value_1);
-        assertEquals(put_value_2, get_value_2);
     }
 
     @Test(expected = NullPointerException.class)
