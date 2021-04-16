@@ -28,7 +28,7 @@ In project's pom.xml add in ```<dependencies>```:
     <dependency>
         <groupId>com.github.leonardofel</groupId>
         <artifactId>json-java-put-null-fix</artifactId>
-        <version>3.0.33</version>
+        <version>3.0.34</version>
     </dependency>
 </dependencies>
 ```
