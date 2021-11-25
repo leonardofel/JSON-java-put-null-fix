@@ -1023,6 +1023,10 @@ public class JSONArray implements Iterable<Object> {
         return this.put(new JSONObject(value));
     }
 
+    public JSONArray put(JSONObject value) {
+        return this.put((Object) value);
+    }
+
     /**
      * Append an object value. This increases the array's length by one.
      *
@@ -1158,6 +1162,11 @@ public class JSONArray implements Iterable<Object> {
      */
     public JSONArray put(int index, Map<?, ?> value) throws JSONException {
         this.put(index, new JSONObject(value));
+        return this;
+    }
+
+    public JSONArray put(int index, JSONObject value) throws JSONException {
+        this.put(index, (Object) value);
         return this;
     }
 
