@@ -1,6 +1,7 @@
 package org.json.junit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -9,6 +10,7 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.json.JSONObject;
 import org.junit.Test;
@@ -395,13 +397,43 @@ public class JSONTest {
 
     @Test
     public void lastTest() {
-        //final Byte a_Byte; //json.getByte("a");
-        final Double a_Double; //json.getDouble("a"); //testNullDouble
-        final Float a_Float; //json.getFloat("a"); //testNullFloat
-        final Integer a_Integer; //json.getInteger("a"); //testNullInteger
-        final Long a_Long; //json.getLong("a"); //testNullLong
-        //final Short a_Short; //json.getShort("a");
-        final BigDecimal a_BigDecimal; //json.getBigDecimal("a");
-        final BigInteger a_BigInteger; //json.getBigInteger("a");
+        final Byte a_Byte /* = new JSONObject().optByte("a") */;
+        final Double a_Double = new JSONObject().optDouble("a"); //testNullDouble
+        final Float a_Float = new JSONObject().optFloat("a"); //testNullFloat
+        final Integer a_Integer = new JSONObject().optInteger("a"); //testNullInteger
+        final Long a_Long = new JSONObject().optLong("a"); //testNullLong
+        final Short a_Short /* = new JSONObject().getShort("a") */;
+        final BigDecimal a_BigDecimal /* = new JSONObject().getBigDecimal("a") */;
+        final BigInteger a_BigInteger /* = new JSONObject().getBigInteger("a") */;
+    }
+
+    @Test
+    public void computeTest() {
+        JSONObject j = new JSONObject();
+
+        var r1 = j.opt("myKey");
+        assertEquals(r1, null);
+
+        j.compute("myKey", (k, v) -> v == null ? "myNull" : "unexpected");
+
+        var r2 = j.opt("myKey");
+        assertEquals(r2, "myNull");
+    }
+
+
+    @Test
+    public void updateTest() {
+        final JSONObject j = new JSONObject();
+        final AtomicBoolean atomicBoolean = new AtomicBoolean();
+        assertFalse(atomicBoolean.get());
+        j.addUpdateListener(evt -> {
+            final Object oldValue = evt.getOldValue();
+            assertEquals(oldValue, null);
+            final Object newValue = evt.getNewValue();
+            assertEquals(newValue, "propertyChange");
+            atomicBoolean.set(true);
+        });
+        j.update("myMapListener", "propertyChange");
+        assertTrue(atomicBoolean.get());
     }
 }

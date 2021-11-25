@@ -1,5 +1,7 @@
 package org.json;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.Closeable;
 
 /*
@@ -42,9 +44,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -100,7 +103,7 @@ import java.util.regex.Pattern;
  * @author JSON.org
  * @version 2016-08-15
  */
-public class JSONObject {
+public class JSONObject extends HashMap<String, Object> {
     /**
      * JSONObject.NULL is equivalent to the value that JavaScript calls null,
      * whilst Java's null is equivalent to the value that JavaScript calls
@@ -160,11 +163,6 @@ public class JSONObject {
     static final Pattern NUMBER_PATTERN = Pattern.compile("-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?");
 
     /**
-     * The map where the JSONObject's properties are kept.
-     */
-    private final Map<String, Object> map;
-
-    /**
      * It is sometimes more convenient and less ambiguous to have a
      * <code>NULL</code> object than to use Java's <code>null</code> value.
      * <code>JSONObject.NULL.equals(null)</code> returns <code>true</code>.
@@ -182,7 +180,7 @@ public class JSONObject {
         // implementations to rearrange their items for a faster element
         // retrieval based on associative access.
         // Therefore, an implementation mustn't rely on the order of the item.
-        this.map = new HashMap<String, Object>();
+        super();
     }
 
     /**
@@ -286,18 +284,14 @@ public class JSONObject {
      *            If a key in the map is <code>null</code>
      */
     public JSONObject(Map<?, ?> m) {
-        if (m == null) {
-            this.map = new HashMap<String, Object>();
-        } else {
-            this.map = new HashMap<String, Object>(m.size());
-            for (final Entry<?, ?> e : m.entrySet()) {
-                if (e.getKey() == null) {
-                    throw new NullPointerException("Null key.");
-                }
-                final Object value = e.getValue();
-                if (value != null) {
-                    this.map.put(String.valueOf(e.getKey()), wrap(value));
-                }
+        super(m.size());
+        for (final Entry<?, ?> e : m.entrySet()) {
+            if (e.getKey() == null) {
+                throw new NullPointerException("Null key.");
+            }
+            final Object value = e.getValue();
+            if (value != null) {
+                super.put(String.valueOf(e.getKey()), wrap(value));
             }
         }
     }
@@ -454,17 +448,6 @@ public class JSONObject {
     }
 
     /**
-     * Constructor to specify an initial capacity of the internal map. Useful for library
-     * internal calls where we know, or at least can best guess, how big this JSONObject
-     * will be.
-     *
-     * @param initialCapacity initial capacity of the internal map.
-     */
-    protected JSONObject(int initialCapacity) {
-        this.map = new HashMap<String, Object>(initialCapacity);
-    }
-
-    /**
      * Accumulate values under a key. It is similar to the put method except
      * that if there is already an object stored under the key then a JSONArray
      * is stored under the key to hold all of the accumulated values. If there
@@ -569,7 +552,7 @@ public class JSONObject {
      */
     public Object get(String key) throws JSONException {
         try {
-            return this.map.get(key);
+            return super.get(key);
         } catch (Exception e) {
             throw new JSONException(e.getMessage());
         }
@@ -870,7 +853,7 @@ public class JSONObject {
      * @return true if the key exists in the JSONObject.
      */
     public boolean has(String key) {
-        return this.map.containsKey(key);
+        return super.containsKey(key);
     }
 
     /**
@@ -944,23 +927,7 @@ public class JSONObject {
      * @return A keySet.
      */
     public Set<String> keySet() {
-        return this.map.keySet();
-    }
-
-    /**
-     * Get a set of entries of the JSONObject. These are raw values and may not
-     * match what is returned by the JSONObject get* and opt* functions. Modifying
-     * the returned EntrySet or the Entry objects contained therein will modify the
-     * backing JSONObject. This does not return a clone or a read-only view.
-     *
-     * Use with caution.
-     *
-     * @see Map#entrySet()
-     *
-     * @return An Entry Set
-     */
-    protected Set<Entry<String, Object>> entrySet() {
-        return this.map.entrySet();
+        return super.keySet();
     }
 
     /**
@@ -969,7 +936,7 @@ public class JSONObject {
      * @return The number of keys in the JSONObject.
      */
     public int length() {
-        return this.map.size();
+        return super.size();
     }
 
     /**
@@ -978,7 +945,7 @@ public class JSONObject {
      * @return true if JSONObject is empty, otherwise false.
      */
     public boolean isEmpty() {
-        return this.map.isEmpty();
+        return super.isEmpty();
     }
 
     /**
@@ -989,10 +956,10 @@ public class JSONObject {
      *        is empty.
      */
     public JSONArray names() {
-        if (this.map.isEmpty()) {
+        if (super.isEmpty()) {
             return null;
         }
-        return new JSONArray(this.map.keySet());
+        return new JSONArray(super.keySet());
     }
 
     /**
@@ -1035,7 +1002,7 @@ public class JSONObject {
         if (key == null) {
             return null;
         } else {
-            final Object value = this.map.get(key);
+            final Object value = super.get(key);
             if (JSONObject.NULL.equals(value)) {
                 return null;
             } else {
@@ -1527,7 +1494,7 @@ public class JSONObject {
                     try {
                         final Object result = method.invoke(bean);
                         if (result != null) {
-                            this.map.put(key, wrap(result));
+                            super.put(key, wrap(result));
                             // we don't use the result anywhere outside of wrap
                             // if it's a resource we should be sure to close it
                             // after calling toString
@@ -1826,6 +1793,22 @@ public class JSONObject {
         return this.put(key, new JSONObject(value));
     }
 
+    private PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
+    private final String propertyName = "map";
+    public void addUpdateListener(PropertyChangeListener propertyChangeListener) {
+        propertyChangeSupport.addPropertyChangeListener(propertyChangeListener);
+    }
+
+    public void update(String key, Object newValue) throws JSONException {
+        if (propertyChangeSupport.hasListeners(this.propertyName)) {
+            final Object oldValue = this.opt(key);
+            this.put(key, newValue);
+            propertyChangeSupport.firePropertyChange(this.propertyName, oldValue, newValue);
+        } else {
+            throw new JSONException("updateListener not initialized");
+        }
+    }
+
     /**
      * <p><img src='https://media1.tenor.com/images/23d9d746fc87b3a93298af43dae21f6a/tenor.gif' /></p>
      *
@@ -1853,16 +1836,18 @@ public class JSONObject {
             // just...
             // works
             // btw idc
-            this.map.put(key, JSONObject.NULL);
+            super.put(key, JSONObject.NULL);
         } else {
             testValidity(value);
 
             if (value instanceof Collection) {
                 this.putCollection(key, (Collection<?>) value);
+            } else if (value instanceof JSONObject) {
+                super.put(key, value);
             } else if (value instanceof Map) {
                 this.putMap(key, (Map<?, ?>) value);
             } else {
-                this.map.put(key, value);
+                super.put(key, value);
             }
         }
         return this;
@@ -2076,7 +2061,7 @@ public class JSONObject {
      *         no value.
      */
     public Object remove(String key) {
-        return this.map.remove(key);
+        return super.remove(key);
     }
 
     /**
