@@ -1,17 +1,19 @@
 package org.json.junit;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -397,14 +399,14 @@ public class JSONTest {
 
     @Test
     public void lastTest() {
-        final Byte a_Byte /* = new JSONObject().optByte("a") */;
-        final Double a_Double = new JSONObject().optDouble("a"); //testNullDouble
-        final Float a_Float = new JSONObject().optFloat("a"); //testNullFloat
-        final Integer a_Integer = new JSONObject().optInteger("a"); //testNullInteger
-        final Long a_Long = new JSONObject().optLong("a"); //testNullLong
-        final Short a_Short /* = new JSONObject().getShort("a") */;
-        final BigDecimal a_BigDecimal /* = new JSONObject().getBigDecimal("a") */;
-        final BigInteger a_BigInteger /* = new JSONObject().getBigInteger("a") */;
+        //final Byte a_Byte /* = new JSONObject().optByte("a") */;
+        //final Double a_Double = new JSONObject().optDouble("a"); //testNullDouble
+        //final Float a_Float = new JSONObject().optFloat("a"); //testNullFloat
+        //final Integer a_Integer = new JSONObject().optInteger("a"); //testNullInteger
+        //final Long a_Long = new JSONObject().optLong("a"); //testNullLong
+        //final Short a_Short /* = new JSONObject().getShort("a") */;
+        //final BigDecimal a_BigDecimal /* = new JSONObject().getBigDecimal("a") */;
+        //final BigInteger a_BigInteger /* = new JSONObject().getBigInteger("a") */;
     }
 
     @Test
@@ -420,20 +422,145 @@ public class JSONTest {
         assertEquals(r2, "myNull");
     }
 
-
     @Test
-    public void updateTest() {
+    public void updateNotEqualsTest() {
         final JSONObject j = new JSONObject();
-        final AtomicBoolean atomicBoolean = new AtomicBoolean();
-        assertFalse(atomicBoolean.get());
-        j.addUpdateListener(evt -> {
+
+        assertThrows(JSONException.class, () -> j.update("myMapListener", "propertyChange"));
+
+        j.addUpdateListenerGlobal(evt -> {
             final Object oldValue = evt.getOldValue();
             assertEquals(oldValue, null);
-            final Object newValue = evt.getNewValue();
-            assertEquals(newValue, "propertyChange");
-            atomicBoolean.set(true);
         });
+
+        j.addUpdateListenerGlobal(evt -> {
+            final Object newValue = evt.getNewValue();
+            assertTrue(newValue.toString().startsWith("propertyChange"));
+        });
+
+        j.addUpdateListener("myMapListener", evt -> {
+            final Object oldValue = evt.getOldValue();
+            final Object newValue = evt.getNewValue();
+
+            assertNotEquals(oldValue, newValue);
+        });
+
         j.update("myMapListener", "propertyChange");
-        assertTrue(atomicBoolean.get());
+    }
+
+    @Test
+    public void updateListenerGlobalTest() {
+        final JSONObject j = new JSONObject();
+
+        final AtomicInteger counter = new AtomicInteger();
+        final AtomicInteger globalExecutions = new AtomicInteger();
+        assertEquals(counter.get(), globalExecutions.get());
+
+        j.addUpdateListenerGlobal(evt -> {
+            globalExecutions.incrementAndGet();
+        });
+
+        j.addUpdateListenerGlobal(evt -> {
+            assertEquals(counter.incrementAndGet(), globalExecutions.get() * 3 - 2);
+        });
+
+        j.addUpdateListenerGlobal(evt -> {
+            assertEquals(counter.incrementAndGet(), globalExecutions.get() * 3 - 1);
+        });
+
+        j.addUpdateListener("myMapListener", evt -> {
+            assertEquals(counter.incrementAndGet(), globalExecutions.get() * 3 - 0);
+        });
+
+        j.update("myMapListener", "propertyChange123");
+        j.update("myMapListener", "propertyChange456");
+        j.update("myMapListener", "propertyChange789");
+
+        assertEquals(counter.get(), globalExecutions.get() * 3);
+    }
+
+    @Test
+    public void updateListenerTest() {
+        final JSONObject j = new JSONObject();
+
+        j.put("myMapListener", "unchangedProperty");
+
+        j.addUpdateListener("myMapListener", evt -> {
+            fail("They are the same");
+        });
+
+        j.update("myMapListener", "unchangedProperty");
+
+        j.addUpdateListener("otherMapListener", evt -> {
+            final Object oldValue = evt.getOldValue();
+            assertEquals(oldValue, null);
+
+            final Object newValue = evt.getNewValue();
+            assertEquals(newValue, "otherOtherPropertyChange");
+        });
+
+        j.update("otherMapListener", "otherOtherPropertyChange");
+    }
+
+    @Test
+    public void updateListener2Test() {
+        final JSONObject jsonObject1 = new JSONObject();
+        final JSONObject jsonObject2 = new JSONObject();
+
+        jsonObject1
+            .put("trueKey", Boolean.valueOf(true))
+            .put("falseKey", Boolean.valueOf(false))
+            .put("stringKey", "CHANGE ME!!!");
+            //.put("nullKey", "NOT NULL");
+
+        final JSONObject oldJsonObject1 = new JSONObject(jsonObject1.toString());
+
+        jsonObject2
+            .put("stringKey", "hello world!")
+            .put("nullKey", null)
+            .put("escapeStringKey", "h\be\tllo w\u1234orld!")
+            .put("intKey", Long.valueOf(42));
+            //.put("doubleKey", Double.valueOf(-23.45e67)); PROBLEM WITH DOUBLE CONVERTING TO BIGDECIMAL AFTER JSONOBJECT.TOSTRING
+
+        final JSONObject oldJsonObject2 = new JSONObject(jsonObject2.toString());
+
+        jsonObject1.addUpdateListenerGlobal(evt -> {
+            final Object oldValue = evt.getOldValue();
+            final Object newValue = evt.getNewValue();
+
+            assertNotEquals(oldValue, newValue);
+        });
+
+        jsonObject1.addUpdateListener("trueKey", evt -> {
+            assertNull(evt.getOldValue());
+            assertTrue("expected \"trueKey\":true", Boolean.TRUE.equals(evt.getNewValue()));
+        });
+        jsonObject1.addUpdateListener("falseKey", evt -> {
+            assertNull(evt.getOldValue());
+            assertTrue("expected \"falseKey\":false", Boolean.FALSE.equals(evt.getNewValue()));
+        });
+        jsonObject1.addUpdateListener("stringKey", evt -> {
+            assertNotNull(evt.getOldValue());
+            assertTrue("expected \"stringKey\":\"hello world!\"", "hello world!".equals(evt.getNewValue()));
+        });
+        jsonObject1.addUpdateListener("nullKey", evt -> {
+            fail("They are the same");
+        });
+        jsonObject1.addUpdateListener("escapeStringKey", evt -> {
+            assertNotNull(evt.getOldValue());
+            assertTrue("expected \"escapeStringKey\":\"h\be\tllo w\u1234orld!\"", "h\be\tllo w\u1234orld!".equals(evt.getNewValue()));
+        });
+        jsonObject1.addUpdateListener("intKey", evt -> {
+            assertNotNull(evt.getOldValue());
+            assertTrue("expected \"intKey\":42", Long.valueOf("42").equals(evt.getNewValue()));
+        });
+
+        assertEquals(jsonObject1.toString(), oldJsonObject1.toString());
+        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
+
+        jsonObject1.update(jsonObject2);
+
+        assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
+        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
     }
 }

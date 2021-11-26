@@ -44,10 +44,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -1794,19 +1793,137 @@ public class JSONObject extends HashMap<String, Object> {
     }
 
     private PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
-    private final String propertyName = "map";
-    public void addUpdateListener(PropertyChangeListener propertyChangeListener) {
-        propertyChangeSupport.addPropertyChangeListener(propertyChangeListener);
+    /**
+     * Add a PropertyChangeListener to the JSONObject.
+     * The listener object may be added more than once, and will be called
+     * as many times as it is added.
+     * If {@code listener} is null, no exception is thrown and no action
+     * is taken.
+     *
+     * @param listener  The PropertyChangeListener to be added
+     */
+    public void addUpdateListenerGlobal(PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(listener);
     }
 
-    public void update(String key, Object newValue) throws JSONException {
-        if (propertyChangeSupport.hasListeners(this.propertyName)) {
+    /**
+     * Add a PropertyChangeListener for a specific property to the JSONObject.
+     * The listener will be invoked only when a call on
+     * update names that specific property
+     * The listener object may be added more than once, and will be called
+     * as many times as it is added.
+     * If {@code listener} is null, no exception is thrown and no action
+     * is taken.
+     *
+     * @param key  The key string to listen on.
+     * @param listener  The PropertyChangeListener to be added
+     */
+    public void addUpdateListener(String key, PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(key, listener);
+    }
+
+    /**
+     * Put a key/value pair in the JSONObject and
+     * reports a bound property update to listeners.
+     *
+     * @param key
+     *            A key string.
+     * @param newValue
+     *            An object which is the newValue. It should be of one of these
+     *            types: Boolean, Double, Integer, JSONArray, JSONObject, Long,
+     *            String, or the JSONObject.NULL object.
+     * @return this.
+     * @throws JSONException
+     *            If the newValue is non-finite number.
+     * @throws JSONException
+     *            If updateListener not initialized.
+     */
+    public JSONObject update(String key, Object newValue) throws JSONException {
+        if (this.propertyChangeSupport.hasListeners(key)) {
             final Object oldValue = this.opt(key);
             this.put(key, newValue);
-            propertyChangeSupport.firePropertyChange(this.propertyName, oldValue, newValue);
+
+            this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
         } else {
-            throw new JSONException("updateListener not initialized");
+            throw new JSONException("updateListener on \"" + key + "\" not initialized");
         }
+
+        return this;
+    }
+
+    /**
+     * Put a key/value pair in the JSONObject and
+     * reports a bound property update to listeners.
+     *
+     * @param key
+     *            A key string.
+     * @param newValue
+     *            An object which is the newValue. It should be of one of these
+     *            types: Boolean, Double, Integer, JSONArray, JSONObject, Long,
+     *            String, or the JSONObject.NULL object.
+     * @return this.
+     * @throws JSONException
+     *            If the newValue is non-finite number.
+     * @throws JSONException
+     *            If updateListener not initialized.
+     */
+    public JSONObject update(JSONObject jo) throws JSONException {
+        return this.updateOrRemove(jo, false);
+    }
+
+    /**
+     * Put a key/value pair in the JSONObject and
+     * reports a bound property update to listeners.
+     *
+     * @param key
+     *            A key string.
+     * @param newValue
+     *            An object which is the newValue. It should be of one of these
+     *            types: Boolean, Double, Integer, JSONArray, JSONObject, Long,
+     *            String, or the JSONObject.NULL object.
+     * @return this.
+     * @throws JSONException
+     *            If the newValue is non-finite number.
+     * @throws JSONException
+     *            If updateListener not initialized.
+     */
+    public JSONObject updateOrRemove(JSONObject jo) throws JSONException {
+        return this.updateOrRemove(jo, true);
+    }
+
+    private JSONObject updateOrRemove(JSONObject jo, boolean remove) throws JSONException {
+        final HashMap<String, Map.Entry<Object, Object>> entries = new HashMap<String, Map.Entry<Object, Object>>();
+
+        jo.forEach((key, newValue) -> {
+            this.merge(key, newValue, (v1, v2) -> {
+                if (Objects.equals(v1, v2)) {
+                    return v1;
+                } else {
+                    entries.put(key, Map.entry(v1, v2));
+                    return v2;
+                }
+            });
+        });
+
+        if (remove) {
+            this.forEach((key, oldValue) -> {
+                if (!jo.has(key)) {
+                    this.remove(key);
+                    final Object ret = entries.put(key, Map.entry(oldValue, null));
+                    if (ret != null) {
+                        System.err.println("unexpected behavior!");
+                    }
+                }
+            });
+        }
+
+        entries.forEach((key, entry) -> {
+            final Object oldValue = entry.getKey();
+            final Object newValue = entry.getValue();
+            this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
+        });
+
+        return this;
     }
 
     /**
