@@ -38,6 +38,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -1892,35 +1893,44 @@ public class JSONObject extends HashMap<String, Object> {
     }
 
     private JSONObject updateOrRemove(JSONObject jo, boolean remove) throws JSONException {
-        final HashMap<String, Map.Entry<Object, Object>> entries = new HashMap<String, Map.Entry<Object, Object>>();
+        final HashMap<String, Object> oldValues = new HashMap<String, Object>();
+        final HashMap<String, Object> newValues = new HashMap<String, Object>();
+        final ArrayList<String> delValues = new ArrayList<String>();
 
-        jo.forEach((key, newValue) -> {
-            this.merge(key, newValue, (v1, v2) -> {
-                if (Objects.equals(v1, v2)) {
+        jo.forEach((key, v2) -> {
+            this.compute(key, (k, v1) -> {
+                if (Objects.equals(v1, v2) && Objects.equals(v2, v1)) {
                     return v1;
                 } else {
-                    entries.put(key, Map.entry(v1, v2));
-                    return v2;
+                    oldValues.put(key, JSONObject.NULL.equals(v1) ? null : v1);
+                    newValues.put(key, JSONObject.NULL.equals(v2) ? null : v2);
+                    return JSONObject.NULL.equals(v1) ? JSONObject.NULL : v1;
                 }
             });
         });
 
         if (remove) {
-            this.forEach((key, oldValue) -> {
+            for (String key : JSONObject.getNames(this)) {
                 if (!jo.has(key)) {
-                    this.remove(key);
-                    final Object ret = entries.put(key, Map.entry(oldValue, null));
-                    if (ret != null) {
-                        System.err.println("unexpected behavior!");
-                    }
+                    oldValues.put(key, this.remove(key));
+                    delValues.add(key);
                 }
-            });
+            }
         }
 
-        entries.forEach((key, entry) -> {
-            final Object oldValue = entry.getKey();
-            final Object newValue = entry.getValue();
-            this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
+        oldValues.forEach((key, oldValue) -> {
+            final Object newValue;
+            if (remove && delValues.contains(key)) {
+                newValue = null;
+            } else {
+                newValue = newValues.get(key);
+            }
+
+            if (oldValue == null && newValue == null) {
+                this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
+            } else {
+                this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
+            }
         });
 
         return this;

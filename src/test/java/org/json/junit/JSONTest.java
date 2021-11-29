@@ -510,14 +510,18 @@ public class JSONTest {
         jsonObject1
             .put("trueKey", Boolean.valueOf(true))
             .put("falseKey", Boolean.valueOf(false))
-            .put("stringKey", "CHANGE ME!!!");
-            //.put("nullKey", "NOT NULL");
+            .put("stringKey", "CHANGE ME!!!")
+            .put("nullKey", null)
+            .put("nullBefore", null)
+            .put("nullAfter", "null");
 
         final JSONObject oldJsonObject1 = new JSONObject(jsonObject1.toString());
 
         jsonObject2
-            .put("stringKey", "hello world!")
             .put("nullKey", null)
+            .put("nullBefore", "null")
+            .put("nullAfter", null)
+            .put("stringKey", "hello world!")
             .put("escapeStringKey", "h\be\tllo w\u1234orld!")
             .put("intKey", Long.valueOf(42));
             //.put("doubleKey", Double.valueOf(-23.45e67)); PROBLEM WITH DOUBLE CONVERTING TO BIGDECIMAL AFTER JSONOBJECT.TOSTRING
@@ -528,7 +532,9 @@ public class JSONTest {
             final Object oldValue = evt.getOldValue();
             final Object newValue = evt.getNewValue();
 
-            assertNotEquals(oldValue, newValue);
+            if (!(oldValue == JSONObject.NULL && newValue == null)) {
+                assertNotEquals(oldValue, newValue);
+            }
         });
 
         jsonObject1.addUpdateListener("trueKey", evt -> {
