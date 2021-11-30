@@ -1910,10 +1910,13 @@ public class JSONObject extends HashMap<String, Object> {
         });
 
         if (remove) {
-            for (String key : JSONObject.getNames(this)) {
-                if (!jo.has(key)) {
-                    oldValues.put(key, this.remove(key));
-                    delValues.add(key);
+            final String[] names = JSONObject.getNames(this);
+            if (names != null) {
+                for (String key : names) {
+                    if (!jo.has(key)) {
+                        oldValues.put(key, this.remove(key));
+                        delValues.add(key);
+                    }
                 }
             }
         }

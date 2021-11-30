@@ -526,6 +526,8 @@ public class JSONTest {
             .put("intKey", Long.valueOf(42));
             //.put("doubleKey", Double.valueOf(-23.45e67)); PROBLEM WITH DOUBLE CONVERTING TO BIGDECIMAL AFTER JSONOBJECT.TOSTRING
 
+        final JSONObject jsonObject3 = new JSONObject(jsonObject2.toString());
+
         final JSONObject oldJsonObject2 = new JSONObject(jsonObject2.toString());
 
         jsonObject1.addUpdateListenerGlobal(evt -> {
@@ -565,8 +567,83 @@ public class JSONTest {
         assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
 
         jsonObject1.update(jsonObject2);
+        jsonObject3.updateOrRemove(jsonObject2);
 
         assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
         assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
+    }
+
+    @Test
+    public void updateOrRemoveSrcEmptyTest() {
+        try {
+            final JSONObject jsonObject1 = new JSONObject();
+            final JSONObject jsonObject2 = new JSONObject()
+                .put("trueKey", Boolean.valueOf(true))
+                .put("falseKey", Boolean.valueOf(false))
+                .put("stringKey", "hello world!")
+                .put("nullKey", null);
+
+            jsonObject1.addUpdateListenerGlobal(evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                if (!(oldValue == JSONObject.NULL && newValue == null)) {
+                    assertNotEquals(oldValue, newValue);
+                }
+            });
+
+            jsonObject1.updateOrRemove(jsonObject2);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            fail(ex.getMessage());
+        }
+    }
+
+    @Test
+    public void updateOrRemoveDstEmptyTest() {
+        try {
+            final JSONObject jsonObject1 = new JSONObject()
+                .put("trueKey", Boolean.valueOf(true))
+                .put("falseKey", Boolean.valueOf(false))
+                .put("stringKey", "hello world!")
+                .put("nullKey", null);
+            final JSONObject jsonObject2 = new JSONObject();
+
+            jsonObject1.addUpdateListenerGlobal(evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                if (!(oldValue == JSONObject.NULL && newValue == null)) {
+                    assertNotEquals(oldValue, newValue);
+                }
+            });
+
+            jsonObject1.updateOrRemove(jsonObject2);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            fail(ex.getMessage());
+        }
+    }
+
+    @Test
+    public void updateOrRemoveAlltEmptyTest() {
+        try {
+            final JSONObject jsonObject1 = new JSONObject();
+            final JSONObject jsonObject2 = new JSONObject();
+
+            jsonObject1.addUpdateListenerGlobal(evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                if (!(oldValue == JSONObject.NULL && newValue == null)) {
+                    assertNotEquals(oldValue, newValue);
+                }
+            });
+
+            jsonObject1.updateOrRemove(jsonObject2);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            fail(ex.getMessage());
+        }
     }
 }
