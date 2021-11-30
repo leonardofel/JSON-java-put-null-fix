@@ -1876,7 +1876,7 @@ public class JSONObject extends HashMap<String, Object> {
      *            If updateListener not initialized.
      */
     public JSONObject update(JSONObject jo) throws JSONException {
-        return this.updateOrRemove(jo, false);
+        return this.updateOrRemove(jo, false, true);
     }
 
     /**
@@ -1896,10 +1896,18 @@ public class JSONObject extends HashMap<String, Object> {
      *            If updateListener not initialized.
      */
     public JSONObject updateOrRemove(JSONObject jo) throws JSONException {
-        return this.updateOrRemove(jo, true);
+        return this.updateOrRemove(jo, true, true);
     }
 
-    private JSONObject updateOrRemove(JSONObject jo, boolean remove) throws JSONException {
+    public JSONObject mix(JSONObject jo) throws JSONException {
+        return this.updateOrRemove(jo, false, false);
+    }
+
+    public JSONObject mixOrRemove(JSONObject jo) throws JSONException {
+        return this.updateOrRemove(jo, true, false);
+    }
+
+    private JSONObject updateOrRemove(JSONObject jo, boolean remove, boolean triggerEvent) throws JSONException {
         final JSONObject oldThis = new JSONObject(this.toString());
 
         final HashMap<String, Object> oldValues = new HashMap<String, Object>();
@@ -1930,24 +1938,26 @@ public class JSONObject extends HashMap<String, Object> {
             }
         }
 
-        this.propertyChangeSupport.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+        if (triggerEvent) {
+            this.propertyChangeSupport.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
 
-        oldValues.forEach((key, oldValue) -> {
-            if (this.propertyChangeSupport.hasListeners(key)) {
-                final Object newValue;
-                if (remove && delValues.contains(key)) {
-                    newValue = null;
-                } else {
-                    newValue = newValues.get(key);
-                }
+            oldValues.forEach((key, oldValue) -> {
+                if (this.propertyChangeSupport.hasListeners(key)) {
+                    final Object newValue;
+                    if (remove && delValues.contains(key)) {
+                        newValue = null;
+                    } else {
+                        newValue = newValues.get(key);
+                    }
 
-                if (oldValue == null && newValue == null) {
-                    this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
-                } else {
-                    this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
+                    if (oldValue == null && newValue == null) {
+                        this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
+                    } else {
+                        this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         return this;
     }
