@@ -1845,15 +1845,14 @@ public class JSONObject extends HashMap<String, Object> {
      *            If updateListener not initialized.
      */
     public JSONObject update(String key, Object newValue) throws JSONException {
-        if (this.propertyChangeSupport.hasListeners(key)) {
-            final JSONObject oldThis = new JSONObject(this.toString());
-            final Object oldValue = this.opt(key);
-            this.put(key, newValue);
+        final JSONObject oldThis = new JSONObject(this.toString());
+        final Object oldValue = this.opt(key);
+        this.put(key, newValue);
 
-            this.propertyChangeSupport.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+        this.propertyChangeSupport.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+
+        if (this.propertyChangeSupport.hasListeners(key)) {
             this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
-        } else {
-            throw new JSONException("updateListener on \"" + key + "\" not initialized");
         }
 
         return this;
