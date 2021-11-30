@@ -1932,7 +1932,7 @@ public class JSONObject extends HashMap<String, Object> {
             if (oldValue == null && newValue == null) {
                 this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
             } else {
-                this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
+                this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
             }
         });
 

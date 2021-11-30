@@ -2,7 +2,6 @@ package org.json.junit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -523,10 +522,8 @@ public class JSONTest {
             .put("nullAfter", null)
             .put("stringKey", "hello world!")
             .put("escapeStringKey", "h\be\tllo w\u1234orld!")
-            .put("intKey", Long.valueOf(42));
+            .put("intKey", 42);
             //.put("doubleKey", Double.valueOf(-23.45e67)); PROBLEM WITH DOUBLE CONVERTING TO BIGDECIMAL AFTER JSONOBJECT.TOSTRING
-
-        final JSONObject jsonObject3 = new JSONObject(jsonObject2.toString());
 
         final JSONObject oldJsonObject2 = new JSONObject(jsonObject2.toString());
 
@@ -540,34 +537,81 @@ public class JSONTest {
         });
 
         jsonObject1.addUpdateListener("trueKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertTrue("expected \"trueKey\":true", Boolean.TRUE.equals(evt.getNewValue()));
+            assertEquals(Boolean.valueOf(true), evt.getOldValue());
+            assertNull(evt.getNewValue());
         });
         jsonObject1.addUpdateListener("falseKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertTrue("expected \"falseKey\":false", Boolean.FALSE.equals(evt.getNewValue()));
+            assertEquals(Boolean.valueOf(false), evt.getOldValue());
+            assertNull(evt.getNewValue());
         });
         jsonObject1.addUpdateListener("stringKey", evt -> {
-            assertNotNull(evt.getOldValue());
-            assertTrue("expected \"stringKey\":\"hello world!\"", "hello world!".equals(evt.getNewValue()));
+            assertEquals("CHANGE ME!!!", evt.getOldValue());
+            assertEquals("hello world!", evt.getNewValue());
         });
         jsonObject1.addUpdateListener("nullKey", evt -> {
-            fail("They are the same");
+            assertNull(evt.getOldValue());
+            assertNull(null, evt.getNewValue());
+        });
+        jsonObject1.addUpdateListener("nullBefore", evt -> {
+            assertNull(evt.getOldValue());
+            assertEquals("null", evt.getNewValue());
+        });
+        jsonObject1.addUpdateListener("nullAfter", evt -> {
+            assertEquals("null", evt.getOldValue());
+            assertEquals(null, evt.getNewValue());
         });
         jsonObject1.addUpdateListener("escapeStringKey", evt -> {
-            assertNotNull(evt.getOldValue());
-            assertTrue("expected \"escapeStringKey\":\"h\be\tllo w\u1234orld!\"", "h\be\tllo w\u1234orld!".equals(evt.getNewValue()));
+            assertNull(evt.getOldValue());
+            assertEquals("h\be\tllo w\u1234orld!", evt.getNewValue());
         });
         jsonObject1.addUpdateListener("intKey", evt -> {
-            assertNotNull(evt.getOldValue());
-            assertTrue("expected \"intKey\":42", Long.valueOf("42").equals(evt.getNewValue()));
+            assertNull(evt.getOldValue());
+            assertEquals(42, evt.getNewValue());
         });
 
         assertEquals(jsonObject1.toString(), oldJsonObject1.toString());
-        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
 
         jsonObject1.update(jsonObject2);
-        jsonObject3.updateOrRemove(jsonObject2);
+
+        assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
+        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
+
+        oldJsonObject1.addUpdateListener("trueKey", evt -> {
+            assertEquals(Boolean.valueOf(true), evt.getOldValue());
+            assertNull(evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("falseKey", evt -> {
+            assertEquals(Boolean.valueOf(false), evt.getOldValue());
+            assertNull(evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("stringKey", evt -> {
+            assertEquals("CHANGE ME!!!", evt.getOldValue());
+            assertEquals("hello world!", evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("nullKey", evt -> {
+            assertNull(evt.getOldValue());
+            assertNull(null, evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("nullBefore", evt -> {
+            assertNull(evt.getOldValue());
+            assertEquals("null", evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("nullAfter", evt -> {
+            assertEquals("null", evt.getOldValue());
+            assertEquals(null, evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("escapeStringKey", evt -> {
+            assertNull(evt.getOldValue());
+            assertEquals("h\be\tllo w\u1234orld!", evt.getNewValue());
+        });
+        oldJsonObject1.addUpdateListener("intKey", evt -> {
+            assertNull(evt.getOldValue());
+            assertEquals(42, evt.getNewValue());
+        });
+
+        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
+
+        oldJsonObject1.updateOrRemove(oldJsonObject2);
 
         assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
         assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
@@ -626,7 +670,7 @@ public class JSONTest {
     }
 
     @Test
-    public void updateOrRemoveAlltEmptyTest() {
+    public void updateOrRemoveAllEmptyTest() {
         try {
             final JSONObject jsonObject1 = new JSONObject();
             final JSONObject jsonObject2 = new JSONObject();
@@ -638,6 +682,66 @@ public class JSONTest {
                 if (!(oldValue == JSONObject.NULL && newValue == null)) {
                     assertNotEquals(oldValue, newValue);
                 }
+            });
+
+            jsonObject1.updateOrRemove(jsonObject2);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            fail(ex.getMessage());
+        }
+    }
+
+    @Test
+    public void updateOrRemoveSrcTest() {
+        try {
+            final JSONObject jsonObject1 = new JSONObject()
+                .put("stringKey", "hello world!");
+            final JSONObject jsonObject2 = new JSONObject();
+
+            jsonObject1.addUpdateListenerGlobal(evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                assertEquals("hello world!", oldValue);
+                assertNull(newValue);
+            });
+
+            jsonObject1.addUpdateListener("stringKey", evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                assertEquals("hello world!", oldValue);
+                assertNull(newValue);
+            });
+
+            jsonObject1.updateOrRemove(jsonObject2);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            fail(ex.getMessage());
+        }
+    }
+
+    @Test
+    public void updateOrRemoveDstTest() {
+        try {
+            final JSONObject jsonObject1 = new JSONObject();
+            final JSONObject jsonObject2 = new JSONObject()
+                .put("stringKey", "hello world!");
+
+            jsonObject1.addUpdateListenerGlobal(evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                assertNull(oldValue);
+                assertEquals("hello world!", newValue);
+            });
+
+            jsonObject1.addUpdateListener("stringKey", evt -> {
+                final Object oldValue = evt.getOldValue();
+                final Object newValue = evt.getNewValue();
+
+                assertNull(oldValue);
+                assertEquals("hello world!", newValue);
             });
 
             jsonObject1.updateOrRemove(jsonObject2);
