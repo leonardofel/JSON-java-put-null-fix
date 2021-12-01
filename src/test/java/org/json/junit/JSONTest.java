@@ -473,12 +473,6 @@ public class JSONTest {
         j.update("myMapListener", "propertyChange456");
         j.update("myMapListener", "propertyChange789");
 
-        try {
-            Thread.sleep(1L);
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-
         assertEquals(counter.get(), globalExecutions.get() * 3);
     }
 
