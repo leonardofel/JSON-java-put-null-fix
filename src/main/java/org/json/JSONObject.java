@@ -1854,16 +1854,20 @@ public class JSONObject extends HashMap<String, Object> {
         final Object oldValue = this.opt(key);
         this.put(key, newValue);
 
-        this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
-        this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
 
-        this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+        new Thread(() -> {
+            this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+            this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
+            this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+        }, "json" + key).start();
 
         return this;
     }
 
     public JSONObject notify(String key, Object oldValue, Object newValue) throws JSONException {
-        this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+        new Thread(() -> {
+            this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+        }, "json" + key).start();
 
         return this;
     }
@@ -1948,19 +1952,21 @@ public class JSONObject extends HashMap<String, Object> {
         }
 
         if (oldValues.size() > 0) {
-            if (triggerUpdate) {
-                this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
-            }
-
-            oldValues.forEach((key, oldValue) -> {
-                final Object v2 = delValues.contains(key) ? null : newValues.get(key);
-                final Object v1 = oldValue == null && v2 == null ? JSONObject.NULL : oldValue;
-
+            new Thread(() -> {
                 if (triggerUpdate) {
-                    this.propertyChangeSupportUpdate.firePropertyChange(key, v1, v2);
+                    this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
                 }
-                this.propertyChangeSupportNotify.firePropertyChange(key, v1, v2);
-            });
+
+                oldValues.forEach((key, oldValue) -> {
+                    final Object v2 = delValues.contains(key) ? null : newValues.get(key);
+                    final Object v1 = oldValue == null && v2 == null ? JSONObject.NULL : oldValue;
+
+                    if (triggerUpdate) {
+                        this.propertyChangeSupportUpdate.firePropertyChange(key, v1, v2);
+                    }
+                    this.propertyChangeSupportNotify.firePropertyChange(key, v1, v2);
+                });
+            }, "json_GLOBAL").start();
         }
 
         return this;
