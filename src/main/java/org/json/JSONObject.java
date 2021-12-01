@@ -1793,7 +1793,8 @@ public class JSONObject extends HashMap<String, Object> {
         return this.put(key, new JSONObject(value));
     }
 
-    private PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
+    private PropertyChangeSupport propertyChangeSupportUpdate = new PropertyChangeSupport(this);
+    private PropertyChangeSupport propertyChangeSupportNotify = new PropertyChangeSupport(this);
     private static final String propertyChangeGlobalKeyword = "__THIS__";
     /**
      * Add a PropertyChangeListener to the JSONObject.
@@ -1804,8 +1805,8 @@ public class JSONObject extends HashMap<String, Object> {
      *
      * @param listener  The PropertyChangeListener to be added
      */
-    public void addUpdateListenerGlobal(PropertyChangeListener listener) {
-        this.propertyChangeSupport.addPropertyChangeListener(JSONObject.propertyChangeGlobalKeyword, listener);
+    public void onUpdateGlobal(PropertyChangeListener listener) {
+        this.propertyChangeSupportUpdate.addPropertyChangeListener(JSONObject.propertyChangeGlobalKeyword, listener);
     }
 
     /**
@@ -1820,12 +1821,16 @@ public class JSONObject extends HashMap<String, Object> {
      * @param key  The key string to listen on.
      * @param listener  The PropertyChangeListener to be added
      */
-    public void addUpdateListener(String key, PropertyChangeListener listener) {
+    public void onUpdate(String key, PropertyChangeListener listener) {
         if (JSONObject.propertyChangeGlobalKeyword.equals(key)) {
             throw new JSONException("key \"" + JSONObject.propertyChangeGlobalKeyword + "\" is reserved");
         } else {
-            this.propertyChangeSupport.addPropertyChangeListener(key, listener);
+            this.propertyChangeSupportUpdate.addPropertyChangeListener(key, listener);
         }
+    }
+
+    public void onNotify(String key, PropertyChangeListener listener) {
+        this.propertyChangeSupportNotify.addPropertyChangeListener(key, listener);
     }
 
     /**
@@ -1849,11 +1854,16 @@ public class JSONObject extends HashMap<String, Object> {
         final Object oldValue = this.opt(key);
         this.put(key, newValue);
 
-        this.propertyChangeSupport.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+        this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+        this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
 
-        if (this.propertyChangeSupport.hasListeners(key)) {
-            this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
-        }
+        this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+
+        return this;
+    }
+
+    public JSONObject notify(String key, Object oldValue, Object newValue) throws JSONException {
+        this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
 
         return this;
     }
@@ -1906,7 +1916,7 @@ public class JSONObject extends HashMap<String, Object> {
         return this.updateOrRemove(jo, true, false);
     }
 
-    private JSONObject updateOrRemove(JSONObject jo, boolean remove, boolean triggerEvent) throws JSONException {
+    private JSONObject updateOrRemove(JSONObject jo, boolean remove, boolean triggerUpdate) throws JSONException {
         final JSONObject oldThis = new JSONObject(this.toString());
 
         final HashMap<String, Object> oldValues = new HashMap<String, Object>();
@@ -1937,24 +1947,19 @@ public class JSONObject extends HashMap<String, Object> {
             }
         }
 
-        if (triggerEvent) {
-            this.propertyChangeSupport.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+        if (oldValues.size() > 0) {
+            if (triggerUpdate) {
+                this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
+            }
 
             oldValues.forEach((key, oldValue) -> {
-                if (this.propertyChangeSupport.hasListeners(key)) {
-                    final Object newValue;
-                    if (remove && delValues.contains(key)) {
-                        newValue = null;
-                    } else {
-                        newValue = newValues.get(key);
-                    }
+                final Object v2 = delValues.contains(key) ? null : newValues.get(key);
+                final Object v1 = oldValue == null && v2 == null ? JSONObject.NULL : oldValue;
 
-                    if (oldValue == null && newValue == null) {
-                        this.propertyChangeSupport.firePropertyChange(key, JSONObject.NULL, newValue);
-                    } else {
-                        this.propertyChangeSupport.firePropertyChange(key, oldValue, newValue);
-                    }
+                if (triggerUpdate) {
+                    this.propertyChangeSupportUpdate.firePropertyChange(key, v1, v2);
                 }
+                this.propertyChangeSupportNotify.firePropertyChange(key, v1, v2);
             });
         }
 
