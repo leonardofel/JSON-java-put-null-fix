@@ -1,7 +1,9 @@
 package org.json.junit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -611,6 +613,67 @@ public class JSONTest {
 
         assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
         assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
+    }
+
+    @Test
+    public void updateChildTest() {
+        final JSONObject jsonParent = new JSONObject();
+        final JSONObject jsonChild = new JSONObject();
+
+        jsonParent.onUpdateGlobal(evt -> {
+            final Object oldValue = evt.getOldValue();
+            final Object newValue = evt.getNewValue();
+
+            assertNotEquals(oldValue.toString(), newValue.toString());
+
+            assertTrue(oldValue instanceof JSONObject);
+            assertTrue(newValue instanceof JSONObject);
+
+            final JSONObject oldValueJson = (JSONObject) oldValue;
+            final JSONObject newValueJson = (JSONObject) newValue;
+
+            if (oldValueJson.has("jsonChild")) {
+                var oldValueJsonChild = oldValueJson.optJSONObject("jsonChild");
+                var newValueJsonChild = newValueJson.optJSONObject("jsonChild");
+
+                assertNotEquals(oldValueJsonChild.toString(), newValueJsonChild.toString());
+                assertNotEquals(oldValueJson.toString(), newValueJson.toString());
+
+                assertFalse(newValueJsonChild.has("test4"));
+                assertTrue(newValueJsonChild.isNull("test4"));
+                assertFalse(newValueJsonChild.has("test5"));
+                assertTrue(newValueJsonChild.isNull("test5"));
+
+                if (newValueJsonChild.has("test3")) {
+                    final JSONObject test3 = newValueJsonChild.getJSONObject("test3");
+                    if (test3.has("test4")) {
+                        assertEquals(test3.optString("test4"), "value4");
+                    }
+
+                    if (test3.has("test5")) {
+                        assertEquals(test3.optString("test5"), "value5");
+                    }
+                } else if (newValueJsonChild.has("test2")) {
+                    assertNull(oldValueJsonChild.optJSONObject("test2"));
+                    assertNotNull(newValueJsonChild.optJSONObject("test2"));
+                } else {
+                    assertTrue(oldValueJsonChild.isNull("test1"));
+                    assertFalse(oldValueJsonChild.optBoolean("test1"));
+
+                    assertFalse(newValueJsonChild.isNull("test1"));
+                    assertTrue(newValueJsonChild.optBoolean("test1"));
+                }
+            }
+        });
+
+        jsonParent.update("jsonChild", jsonChild);
+
+        jsonChild.update("test1", true);
+        jsonChild.update("test2", new JSONObject());
+        final JSONObject test3 = new JSONObject();
+        test3.update("test4", "value4");
+        jsonChild.update("test3", test3);
+        test3.update("test5", "value5");
     }
 
     @Test

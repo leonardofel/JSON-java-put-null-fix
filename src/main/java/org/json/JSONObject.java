@@ -1852,7 +1852,24 @@ public class JSONObject extends HashMap<String, Object> {
     public JSONObject update(String key, Object newValue) throws JSONException {
         final JSONObject oldThis = new JSONObject(this.toString());
         final Object oldValue = this.opt(key);
-        this.put(key, newValue);
+
+
+        if (newValue instanceof JSONObject) {
+            this.put(key, newValue);
+            final JSONObject __oldThis = new JSONObject(this.toString());
+
+            JSONObject newValueJson = (JSONObject) newValue;
+
+            newValueJson.onUpdateGlobal(evt -> {
+                this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, __oldThis, this);
+                this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
+
+                this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+            });
+        } else {
+            this.put(key, newValue);
+        }
+
 
         this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
         this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
