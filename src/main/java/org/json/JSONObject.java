@@ -1,7 +1,5 @@
 package org.json;
 
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
 import java.io.Closeable;
 
 /*
@@ -38,7 +36,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -48,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 /**
@@ -1793,9 +1791,7 @@ public class JSONObject extends HashMap<String, Object> {
         return this.put(key, new JSONObject(value));
     }
 
-    private PropertyChangeSupport propertyChangeSupportUpdate = new PropertyChangeSupport(this);
-    private PropertyChangeSupport propertyChangeSupportNotify = new PropertyChangeSupport(this);
-    private static final String propertyChangeGlobalKeyword = "__THIS__";
+    private Runnable updateListener = null;
     /**
      * Add a PropertyChangeListener to the JSONObject.
      * The listener object may be added more than once, and will be called
@@ -1805,32 +1801,8 @@ public class JSONObject extends HashMap<String, Object> {
      *
      * @param listener  The PropertyChangeListener to be added
      */
-    public void onUpdateGlobal(PropertyChangeListener listener) {
-        this.propertyChangeSupportUpdate.addPropertyChangeListener(JSONObject.propertyChangeGlobalKeyword, listener);
-    }
-
-    /**
-     * Add a PropertyChangeListener for a specific property to the JSONObject.
-     * The listener will be invoked only when a call on
-     * update names that specific property
-     * The listener object may be added more than once, and will be called
-     * as many times as it is added.
-     * If {@code listener} is null, no exception is thrown and no action
-     * is taken.
-     *
-     * @param key  The key string to listen on.
-     * @param listener  The PropertyChangeListener to be added
-     */
-    public void onUpdate(String key, PropertyChangeListener listener) {
-        if (JSONObject.propertyChangeGlobalKeyword.equals(key)) {
-            throw new JSONException("key \"" + JSONObject.propertyChangeGlobalKeyword + "\" is reserved");
-        } else {
-            this.propertyChangeSupportUpdate.addPropertyChangeListener(key, listener);
-        }
-    }
-
-    public void onNotify(String key, PropertyChangeListener listener) {
-        this.propertyChangeSupportNotify.addPropertyChangeListener(key, listener);
+    public void onUpdate(Runnable runnable) throws JSONException {
+        updateListener = runnable;
     }
 
     /**
@@ -1839,7 +1811,7 @@ public class JSONObject extends HashMap<String, Object> {
      *
      * @param key
      *            A key string.
-     * @param newValue
+     * @param v2
      *            An object which is the newValue. It should be of one of these
      *            types: Boolean, Double, Integer, JSONArray, JSONObject, Long,
      *            String, or the JSONObject.NULL object.
@@ -1849,39 +1821,37 @@ public class JSONObject extends HashMap<String, Object> {
      * @throws JSONException
      *            If updateListener not initialized.
      */
-    public JSONObject update(String key, Object newValue) throws JSONException {
-        final JSONObject oldThis = new JSONObject(this.toString());
-        final Object oldValue = this.opt(key);
+    public JSONObject update(String key, Object v2) throws JSONException {
+        final Object v1 = super.put(key, v2);
+        if (v2 instanceof JSONObject) {
+            ((JSONObject) v2).updateListener = this.updateListener;
+        }
+        if (!(Objects.equals(v2, v1) && Objects.equals(v1, v2))) {
+            this.updateListener.run();
+        }
+        return this;
+    }
 
-
-        if (newValue instanceof JSONObject) {
-            this.put(key, newValue);
-            final JSONObject __oldThis = new JSONObject(this.toString());
-
-            JSONObject newValueJson = (JSONObject) newValue;
-
-            newValueJson.onUpdateGlobal(evt -> {
-                this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, __oldThis, this);
-                this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
-
-                this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
+    public JSONObject synchronize(JSONObject jo) throws JSONException {
+        jo.forEach((key, v2) -> {
+            this.compute(key, (k, v1) -> {
+                if (Objects.equals(v1, v2) && Objects.equals(v2, v1)) {
+                    return v1;
+                } else {
+                    return JSONObject.NULL.equals(v2) ? JSONObject.NULL : v2;
+                }
             });
-        } else {
-            this.put(key, newValue);
+        });
+
+        final String[] names = JSONObject.getNames(this);
+        if (names != null) {
+            for (String key : names) {
+                if (!jo.has(key)) {
+                    this.remove(key);
+                }
+            }
         }
 
-
-        this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
-        this.propertyChangeSupportUpdate.firePropertyChange(key, oldValue, newValue);
-
-        this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
-
-        return this;
-    }
-
-    public JSONObject notify(String key, Object oldValue, Object newValue) throws JSONException {
-        this.propertyChangeSupportNotify.firePropertyChange(key, oldValue, newValue);
-
         return this;
     }
 
@@ -1901,83 +1871,32 @@ public class JSONObject extends HashMap<String, Object> {
      * @throws JSONException
      *            If updateListener not initialized.
      */
-    public JSONObject update(JSONObject jo) throws JSONException {
-        return this.updateOrRemove(jo, false, true);
-    }
-
-    /**
-     * Put a key/value pair in the JSONObject and
-     * reports a bound property update to listeners.
-     *
-     * @param key
-     *            A key string.
-     * @param newValue
-     *            An object which is the newValue. It should be of one of these
-     *            types: Boolean, Double, Integer, JSONArray, JSONObject, Long,
-     *            String, or the JSONObject.NULL object.
-     * @return this.
-     * @throws JSONException
-     *            If the newValue is non-finite number.
-     * @throws JSONException
-     *            If updateListener not initialized.
-     */
-    public JSONObject updateOrRemove(JSONObject jo) throws JSONException {
-        return this.updateOrRemove(jo, true, true);
-    }
-
-    public JSONObject mix(JSONObject jo) throws JSONException {
-        return this.updateOrRemove(jo, false, false);
-    }
-
-    public JSONObject mixOrRemove(JSONObject jo) throws JSONException {
-        return this.updateOrRemove(jo, true, false);
-    }
-
-    private JSONObject updateOrRemove(JSONObject jo, boolean remove, boolean triggerUpdate) throws JSONException {
-        final JSONObject oldThis = new JSONObject(this.toString());
-
-        final HashMap<String, Object> oldValues = new HashMap<String, Object>();
-        final HashMap<String, Object> newValues = new HashMap<String, Object>();
-        final ArrayList<String> delValues = new ArrayList<String>();
+    public JSONObject updateSynchronize(JSONObject jo) throws JSONException {
+        final AtomicBoolean changed = new AtomicBoolean(false);
 
         jo.forEach((key, v2) -> {
             this.compute(key, (k, v1) -> {
                 if (Objects.equals(v1, v2) && Objects.equals(v2, v1)) {
                     return v1;
                 } else {
-                    oldValues.put(key, JSONObject.NULL.equals(v1) ? null : v1);
-                    newValues.put(key, JSONObject.NULL.equals(v2) ? null : v2);
+                    changed.set(true);
                     return JSONObject.NULL.equals(v2) ? JSONObject.NULL : v2;
                 }
             });
         });
 
-        if (remove) {
-            final String[] names = JSONObject.getNames(this);
-            if (names != null) {
-                for (String key : names) {
-                    if (!jo.has(key)) {
-                        oldValues.put(key, this.remove(key));
-                        delValues.add(key);
-                    }
+        final String[] names = JSONObject.getNames(this);
+        if (names != null) {
+            for (String key : names) {
+                if (!jo.has(key)) {
+                    changed.set(true);
+                    this.remove(key);
                 }
             }
         }
 
-        if (oldValues.size() > 0) {
-            if (triggerUpdate) {
-                this.propertyChangeSupportUpdate.firePropertyChange(JSONObject.propertyChangeGlobalKeyword, oldThis, this);
-            }
-
-            oldValues.forEach((key, oldValue) -> {
-                final Object v2 = delValues.contains(key) ? null : newValues.get(key);
-                final Object v1 = oldValue == null && v2 == null ? JSONObject.NULL : oldValue;
-
-                if (triggerUpdate) {
-                    this.propertyChangeSupportUpdate.firePropertyChange(key, v1, v2);
-                }
-                this.propertyChangeSupportNotify.firePropertyChange(key, v1, v2);
-            });
+        if (changed.get()) {
+            this.updateListener.run();
         }
 
         return this;

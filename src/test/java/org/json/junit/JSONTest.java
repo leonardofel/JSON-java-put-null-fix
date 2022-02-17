@@ -11,7 +11,9 @@ import static org.junit.Assert.fail;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import org.json.JSONObject;
 import org.junit.Test;
@@ -427,21 +429,14 @@ public class JSONTest {
 
         //assertThrows(JSONException.class, () -> j.update("myMapListener", "propertyChange"));
 
-        j.onUpdateGlobal(evt -> {
-            final Object oldValue = evt.getOldValue();
+        final Object oldValue = new JSONObject(j.toString());
+        j.onUpdate(() -> {
             assertEquals("{}", oldValue.toString());
         });
 
-        j.onUpdateGlobal(evt -> {
-            final Object newValue = evt.getNewValue();
+        j.onUpdate(() -> {
+            final Object newValue = new JSONObject(j.toString());
             assertEquals("{\"myMapListener\":\"propertyChange\"}", newValue.toString());
-        });
-
-        j.onUpdate("myMapListener", evt -> {
-            final Object oldValue = evt.getOldValue();
-            final Object newValue = evt.getNewValue();
-
-            assertNotEquals(oldValue, newValue);
         });
 
         j.update("myMapListener", "propertyChange");
@@ -455,27 +450,22 @@ public class JSONTest {
         final AtomicInteger globalExecutions = new AtomicInteger();
         assertEquals(counter.get(), globalExecutions.get());
 
-        j.onUpdateGlobal(evt -> {
-            globalExecutions.incrementAndGet();
+        j.onUpdate(() -> {
+            assertEquals(counter.incrementAndGet(), 1);
         });
-
-        j.onUpdateGlobal(evt -> {
-            assertEquals(counter.incrementAndGet(), globalExecutions.get() * 3 - 2);
-        });
-
-        j.onUpdateGlobal(evt -> {
-            assertEquals(counter.incrementAndGet(), globalExecutions.get() * 3 - 1);
-        });
-
-        j.onUpdate("myMapListener", evt -> {
-            assertEquals(counter.incrementAndGet(), globalExecutions.get() * 3 - 0);
-        });
-
         j.update("myMapListener", "propertyChange123");
+
+        j.onUpdate(() -> {
+            assertEquals(counter.incrementAndGet(), 2);
+        });
         j.update("myMapListener", "propertyChange456");
+
+        j.onUpdate(() -> {
+            assertEquals(counter.incrementAndGet(), 3);
+        });
         j.update("myMapListener", "propertyChange789");
 
-        assertEquals(counter.get(), globalExecutions.get() * 3);
+        assertEquals(counter.get(), 3);
     }
 
     @Test
@@ -484,18 +474,15 @@ public class JSONTest {
 
         j.put("myMapListener", "unchangedProperty");
 
-        j.onUpdate("myMapListener", evt -> {
+        j.onUpdate(() -> {
             fail("They are the same");
         });
 
         j.update("myMapListener", "unchangedProperty");
 
-        j.onUpdate("otherMapListener", evt -> {
-            final Object oldValue = evt.getOldValue();
-            assertEquals(oldValue, null);
-
-            final Object newValue = evt.getNewValue();
-            assertEquals(newValue, "otherOtherPropertyChange");
+        j.onUpdate(() -> {
+            final Object newValue = new JSONObject(j.toString());
+            assertNotNull(newValue);
         });
 
         j.update("otherMapListener", "otherOtherPropertyChange");
@@ -527,92 +514,46 @@ public class JSONTest {
 
         final JSONObject oldJsonObject2 = new JSONObject(jsonObject2.toString());
 
-        jsonObject1.onUpdateGlobal(evt -> {
-            final Object oldValue = evt.getOldValue();
-            final Object newValue = evt.getNewValue();
+        final JSONObject oldValue = new JSONObject(jsonObject1.toString());
+        jsonObject1.onUpdate(() -> {
+            final Object newValue = new JSONObject(jsonObject1.toString());
 
             assertNotEquals(oldValue.toString(), newValue.toString());
-        });
+            /*
+            "trueKey":true
+            "falseKey":false
+            "stringKey":"CHANGE ME!!!"
+            "nullKey":null
+            "nullBefore":null
+            "nullAfter":"null"
+            */
+            assertEquals(Boolean.valueOf(true), oldValue.opt("trueKey"));
+            assertEquals(Boolean.valueOf(false), oldValue.opt("falseKey"));
+            assertEquals("CHANGE ME!!!", oldValue.opt("stringKey"));
+            assertNull(oldValue.opt("nullKey"));
+            assertNull(oldValue.opt("nullBefore"));
+            assertEquals("null", oldValue.opt("nullAfter"));
 
-        jsonObject1.onUpdate("trueKey", evt -> {
-            assertEquals(Boolean.valueOf(true), evt.getOldValue());
-            assertNull(evt.getNewValue());
-        });
-        jsonObject1.onUpdate("falseKey", evt -> {
-            assertEquals(Boolean.valueOf(false), evt.getOldValue());
-            assertNull(evt.getNewValue());
-        });
-        jsonObject1.onUpdate("stringKey", evt -> {
-            assertEquals("CHANGE ME!!!", evt.getOldValue());
-            assertEquals("hello world!", evt.getNewValue());
-        });
-        jsonObject1.onUpdate("nullKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertNull(null, evt.getNewValue());
-        });
-        jsonObject1.onUpdate("nullBefore", evt -> {
-            assertNull(evt.getOldValue());
-            assertEquals("null", evt.getNewValue());
-        });
-        jsonObject1.onUpdate("nullAfter", evt -> {
-            assertEquals("null", evt.getOldValue());
-            assertEquals(null, evt.getNewValue());
-        });
-        jsonObject1.onUpdate("escapeStringKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertEquals("h\be\tllo w\u1234orld!", evt.getNewValue());
-        });
-        jsonObject1.onUpdate("intKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertEquals(42, evt.getNewValue());
+            assertEquals(null, jsonObject1.opt("nullKey"));
+            assertEquals("null", jsonObject1.opt("nullBefore"));
+            assertEquals(null, jsonObject1.opt("nullAfter"));
+            assertEquals("hello world!", jsonObject1.opt("stringKey"));
+            assertEquals("h\be\tllo w\u1234orld!", jsonObject1.opt("escapeStringKey"));
+            assertEquals(42, jsonObject1.opt("intKey"));
         });
 
         assertEquals(jsonObject1.toString(), oldJsonObject1.toString());
 
-        jsonObject1.update(jsonObject2);
+        jsonObject1.updateSynchronize(jsonObject2);
 
         assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
         assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
 
-        oldJsonObject1.onUpdate("trueKey", evt -> {
-            assertEquals(Boolean.valueOf(true), evt.getOldValue());
-            assertNull(evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("falseKey", evt -> {
-            assertEquals(Boolean.valueOf(false), evt.getOldValue());
-            assertNull(evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("stringKey", evt -> {
-            assertEquals("CHANGE ME!!!", evt.getOldValue());
-            assertEquals("hello world!", evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("nullKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertNull(null, evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("nullBefore", evt -> {
-            assertNull(evt.getOldValue());
-            assertEquals("null", evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("nullAfter", evt -> {
-            assertEquals("null", evt.getOldValue());
-            assertEquals(null, evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("escapeStringKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertEquals("h\be\tllo w\u1234orld!", evt.getNewValue());
-        });
-        oldJsonObject1.onUpdate("intKey", evt -> {
-            assertNull(evt.getOldValue());
-            assertEquals(42, evt.getNewValue());
+        oldJsonObject1.onUpdate(() -> {
+            assertEquals(jsonObject1.toString(), oldJsonObject1.toString());
         });
 
-        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
-
-        oldJsonObject1.updateOrRemove(oldJsonObject2);
-
-        assertNotEquals(jsonObject1.toString(), oldJsonObject1.toString());
-        assertEquals(jsonObject2.toString(), oldJsonObject2.toString());
+        oldJsonObject1.updateSynchronize(oldJsonObject2);
     }
 
     @Test
@@ -620,9 +561,9 @@ public class JSONTest {
         final JSONObject jsonParent = new JSONObject();
         final JSONObject jsonChild = new JSONObject();
 
-        jsonParent.onUpdateGlobal(evt -> {
-            final Object oldValue = evt.getOldValue();
-            final Object newValue = evt.getNewValue();
+        final Object oldValue = new JSONObject(jsonParent.toString());
+        jsonParent.onUpdate(() -> {
+            final Object newValue = new JSONObject(jsonParent.toString());
 
             assertNotEquals(oldValue.toString(), newValue.toString());
 
@@ -671,13 +612,110 @@ public class JSONTest {
         jsonChild.update("test1", true);
         jsonChild.update("test2", new JSONObject());
         final JSONObject test3 = new JSONObject();
-        test3.update("test4", "value4");
+        test3.put("test4", "value4");
         jsonChild.update("test3", test3);
         test3.update("test5", "value5");
     }
 
     @Test
-    public void updateOrRemoveSrcEmptyTest() {
+    public void stressJSONObjectUpdateTest() {
+        var mem0 = Runtime.getRuntime().totalMemory();
+
+        final AtomicInteger cont = new AtomicInteger();
+
+        var m = new ConcurrentHashMap<Integer, JSONObject>();
+        IntStream.range(0, 1_000_000).forEach(id -> {
+            var j = new JSONObject();
+            var k = new JSONObject();
+            j.onUpdate(() -> {
+                k.update("l", new JSONObject());
+                cont.incrementAndGet();
+            });
+            j.update("k", k);
+            m.put(id, j);
+        });
+
+        System.out.println("StressTestDiffMemory-1: " + (Runtime.getRuntime().totalMemory() - mem0) / 1024 / 1024 + "MB");
+
+        IntStream.range(0, 1).forEach(i -> {
+            IntStream.range(0, 1_000_000).forEach(id -> {
+                var j = m.get(id);
+                var k = j.getJSONObject("k");
+                k.updateSynchronize(
+                    new JSONObject()
+                        .put("id", id)
+                        .put("i", i)
+                );
+            });
+        });
+
+        System.out.println("StressTestDiffMemory-2: " + (Runtime.getRuntime().totalMemory() - mem0) / 1024 / 1024 + "MB");
+
+        IntStream.range(0, 1).forEach(i -> {
+            IntStream.range(0, 1_000_000).forEach(id -> {
+                var j = m.get(id);
+                var k = j.getJSONObject("k");
+                k.updateSynchronize(
+                    new JSONObject()
+                        .put("id", id)
+                        .put("i", i)
+                );
+            });
+        });
+
+        System.out.println("StressTestDiffMemory-3: " + (Runtime.getRuntime().totalMemory() - mem0) / 1024 / 1024 + "MB");
+        System.out.println("StressTestDiffMemory-totalCalculations: " + cont.get());
+    }
+
+    @Test
+    public void stressJSONObjectTest() {
+        var mem0 = Runtime.getRuntime().totalMemory();
+
+        final AtomicInteger cont = new AtomicInteger();
+
+        var m = new ConcurrentHashMap<Integer, JSONObject>();
+        IntStream.range(0, 1_000_000).forEach(id -> {
+            var j = new JSONObject();
+            var k = new JSONObject();
+            j.put("k", k);
+            k.put("l", new JSONObject());
+            m.put(id, j);
+        });
+
+        System.out.println("StressTestDiffMemory-1: " + (Runtime.getRuntime().totalMemory() - mem0) / 1024 / 1024 + "MB");
+
+        IntStream.range(0, 10).forEach(i -> {
+            IntStream.range(0, 1_000_000).forEach(id -> {
+                var j = m.get(id);
+                var k = j.getJSONObject("k");
+                k.synchronize(
+                    new JSONObject()
+                        .put("id", id)
+                        .put("i", i)
+                );
+            });
+        });
+
+        System.out.println("StressTestDiffMemory-2: " + (Runtime.getRuntime().totalMemory() - mem0) / 1024 / 1024 + "MB");
+
+        IntStream.range(0, 10).forEach(i -> {
+            IntStream.range(0, 1_000_000).forEach(id -> {
+                var j = m.get(id);
+                var k = j.getJSONObject("k");
+                k.synchronize(
+                    new JSONObject()
+                        .put("id", id)
+                        .put("i", i)
+                );
+            });
+        });
+
+        System.out.println("StressTestDiffMemory-3: " + (Runtime.getRuntime().totalMemory() - mem0) / 1024 / 1024 + "MB");
+        System.out.println("StressTestDiffMemory-totalCalculations: " + cont.get());
+    }
+
+    @Test
+    public void updateSrcEmptyTest() {
         try {
             final JSONObject jsonObject1 = new JSONObject();
             final JSONObject jsonObject2 = new JSONObject()
@@ -686,14 +724,14 @@ public class JSONTest {
                 .put("stringKey", "hello world!")
                 .put("nullKey", null);
 
-            jsonObject1.onUpdateGlobal(evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
+                final Object oldValue = new JSONObject(jsonObject1.toString());
+            jsonObject1.onUpdate(() -> {
+                final Object newValue = new JSONObject(jsonObject1.toString());
 
                 assertNotEquals(oldValue.toString(), newValue.toString());
             });
 
-            jsonObject1.updateOrRemove(jsonObject2);
+            jsonObject1.updateSynchronize(jsonObject2);
         } catch (Exception ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
@@ -701,7 +739,7 @@ public class JSONTest {
     }
 
     @Test
-    public void updateOrRemoveDstEmptyTest() {
+    public void updateDstEmptyTest() {
         try {
             final JSONObject jsonObject1 = new JSONObject()
                 .put("trueKey", Boolean.valueOf(true))
@@ -710,14 +748,14 @@ public class JSONTest {
                 .put("nullKey", null);
             final JSONObject jsonObject2 = new JSONObject();
 
-            jsonObject1.onUpdateGlobal(evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
+            final Object oldValue = new JSONObject(jsonObject1.toString());
+            jsonObject1.onUpdate(() -> {
+                final Object newValue = new JSONObject(jsonObject1.toString());
 
                 assertNotEquals(oldValue.toString(), newValue.toString());
             });
 
-            jsonObject1.updateOrRemove(jsonObject2);
+            jsonObject1.updateSynchronize(jsonObject2);
         } catch (Exception ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
@@ -725,19 +763,19 @@ public class JSONTest {
     }
 
     @Test
-    public void updateOrRemoveAllEmptyTest() {
+    public void updateAllEmptyTest() {
         try {
             final JSONObject jsonObject1 = new JSONObject();
             final JSONObject jsonObject2 = new JSONObject();
 
-            jsonObject1.onUpdateGlobal(evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
+            final Object oldValue = new JSONObject(jsonObject1.toString());
+            jsonObject1.onUpdate(() -> {
+                final Object newValue = new JSONObject(jsonObject1.toString());
 
                 assertNotEquals(oldValue.toString(), newValue.toString());
             });
 
-            jsonObject1.updateOrRemove(jsonObject2);
+            jsonObject1.updateSynchronize(jsonObject2);
         } catch (Exception ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
@@ -745,29 +783,21 @@ public class JSONTest {
     }
 
     @Test
-    public void updateOrRemoveSrcTest() {
+    public void updateSrcTest() {
         try {
             final JSONObject jsonObject1 = new JSONObject()
                 .put("stringKey", "hello world!");
             final JSONObject jsonObject2 = new JSONObject();
 
-            jsonObject1.onUpdateGlobal(evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
+            final Object oldValue = new JSONObject(jsonObject1.toString());
+            jsonObject1.onUpdate(() -> {
+                final Object newValue = new JSONObject(jsonObject1.toString());
 
                 assertEquals("{\"stringKey\":\"hello world!\"}", oldValue.toString());
                 assertEquals("{}", newValue.toString());
             });
 
-            jsonObject1.onUpdate("stringKey", evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
-
-                assertEquals("hello world!", oldValue);
-                assertNull(newValue);
-            });
-
-            jsonObject1.updateOrRemove(jsonObject2);
+            jsonObject1.updateSynchronize(jsonObject2);
         } catch (Exception ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
@@ -775,29 +805,21 @@ public class JSONTest {
     }
 
     @Test
-    public void updateOrRemoveDstTest() {
+    public void updateDstTest() {
         try {
             final JSONObject jsonObject1 = new JSONObject();
             final JSONObject jsonObject2 = new JSONObject()
                 .put("stringKey", "hello world!");
 
-            jsonObject1.onUpdateGlobal(evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
+            final Object oldValue = new JSONObject(jsonObject1.toString());
+            jsonObject1.onUpdate(() -> {
+                final Object newValue = new JSONObject(jsonObject1.toString());
 
                 assertEquals("{}", oldValue.toString());
                 assertEquals("{\"stringKey\":\"hello world!\"}", newValue.toString());
             });
 
-            jsonObject1.onUpdate("stringKey", evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
-
-                assertNull(oldValue);
-                assertEquals("hello world!", newValue);
-            });
-
-            jsonObject1.updateOrRemove(jsonObject2);
+            jsonObject1.updateSynchronize(jsonObject2);
         } catch (Exception ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
@@ -811,23 +833,15 @@ public class JSONTest {
             final JSONObject jsonObject2 = new JSONObject()
                 .put("stringKey", "hello world!");
 
-            jsonObject1.onUpdateGlobal(evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
+            final Object oldValue = new JSONObject(jsonObject1.toString());
+            jsonObject1.onUpdate(() -> {
+                final Object newValue = new JSONObject(jsonObject1.toString());
 
                 assertEquals("{}", oldValue.toString());
                 assertEquals("{\"stringKey\":\"hello world!\"}", newValue.toString());
             });
 
-            jsonObject1.onUpdate("stringKey", evt -> {
-                final Object oldValue = evt.getOldValue();
-                final Object newValue = evt.getNewValue();
-
-                assertNull(oldValue);
-                assertEquals("hello world!", newValue);
-            });
-
-            jsonObject1.updateOrRemove(jsonObject2);
+            jsonObject1.updateSynchronize(jsonObject2);
         } catch (Exception ex) {
             ex.printStackTrace();
             fail(ex.getMessage());
