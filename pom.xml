@@ -3,7 +3,7 @@
 
     <groupId>com.github.leonardofel</groupId>
     <artifactId>json-java-put-null-fix</artifactId>
-    <version>3.0.47.unsafe</version>
+    <version>3.0.48.unsafe</version>
     <packaging>jar</packaging>
 
     <name>JSON in Java WITH WORKING .put(null)</name>

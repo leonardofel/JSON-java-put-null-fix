@@ -1832,6 +1832,27 @@ public class JSONObject extends HashMap<String, Object> {
         return this;
     }
 
+    public JSONObject update(JSONObject jo) throws JSONException {
+        final AtomicBoolean changed = new AtomicBoolean(false);
+
+        jo.forEach((key, v2) -> {
+            this.compute(key, (k, v1) -> {
+                if (Objects.equals(v1, v2) && Objects.equals(v2, v1)) {
+                    return v1;
+                } else {
+                    changed.set(true);
+                    return JSONObject.NULL.equals(v2) ? JSONObject.NULL : v2;
+                }
+            });
+        });
+
+        if (changed.get()) {
+            this.updateListener.run();
+        }
+
+        return this;
+    }
+
     public JSONObject synchronize(JSONObject jo) throws JSONException {
         jo.forEach((key, v2) -> {
             this.compute(key, (k, v1) -> {
